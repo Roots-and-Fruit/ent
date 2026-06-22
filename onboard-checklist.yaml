@@ -1,0 +1,67 @@
+# User-facing onboard.html capability sections — edit here, not in onboard-html.mjs
+sections:
+  - id: wordpress_mcp
+    title: WordPress MCP
+    source:
+      type: audit_profile
+      profile: wordpress_mcp
+    check_labels:
+      wp.env_present: Workspace credentials file present
+      wp.env_complete: WordPress MCP credentials configured
+      wp.mcp_config: MCP server entry in Cursor
+      wp.mcp_launcher: MCP launcher installed in ent/
+      wp.rest_auth: REST API authentication works
+      wp.mcp_transport: MCP transport connected to your site
+
+  - id: content
+    title: Manage / edit content
+    items:
+      - id: read
+        label: Read posts and pages
+        pass_when:
+          any_audit_pass: [wp.rest_auth]
+          any_ability_pattern: [post, page, content, get-site, read]
+      - id: edit
+        label: Edit posts and pages
+        hint: >-
+          Register WordPress abilities with meta.mcp.public for create/update actions,
+          or ask your agent in Cursor once those abilities exist.
+          See the WordPress MCP Adapter ability guide.
+        hint_link: https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/creating-abilities.md
+        pass_when:
+          any_ability_pattern: [create, update, edit, write, publish, delete]
+
+  - id: plugins
+    title: Manage plugin & theme updates
+    items:
+      - id: list
+        label: See and list plugins and themes
+        pass_when:
+          any_ability_pattern: [plugin, theme, extension]
+      - id: manage
+        label: Manage plugin and theme updates
+        hint: Expose plugin and theme management abilities on your site, then re-run onboard. Until then, use wp-admin.
+        pass_when:
+          any_ability_pattern: [update-plugin, install-plugin, upgrade, activate]
+
+  - id: security
+    title: Security
+    items:
+      - id: audits
+        label: Run regular security audits and fixes
+        upcoming: true
+        hint: Coming soon — Ent will help schedule security audits and apply fixes from Cursor.
+
+  - id: analytics
+    title: Analytics
+    items:
+      - id: web
+        label: See web analytics (GA4, Plausible, etc.)
+        hint: Register analytics abilities with the MCP Adapter, or ask your developer to expose read-only reporting abilities.
+        pass_when:
+          any_ability_pattern: [analytics, ga4, plausible]
+      - id: search_console
+        label: Search Console
+        hint: Register Search Console abilities with the MCP Adapter when available on your site.
+        pass_when:
+          any_ability_pattern: [search-console, searchconsole, gsc]

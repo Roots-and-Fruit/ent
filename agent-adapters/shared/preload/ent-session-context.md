@@ -21,7 +21,7 @@ Manifest v1.0.0 · Phases 1–6 complete per `ent/PLAN.md`:
 | New profile | `ent/ent.manifest.yaml` profiles | mirror `wordpress_mcp` |
 | Cursor adapter / hooks / rules | `ent/agent-adapters/cursor/workspace-template/` | `ent/tools/lib/sync.mjs` |
 | Shared skill | `ent/agent-adapters/shared/skills/` | sync copies to `.cursor/skills/` |
-| Onboard / scaffold | `ent/tools/lib/scaffold.mjs`, `ent/tools/lib/onboard.mjs` | `ent-onboard` skill |
+| Onboard / scaffold | `ent/onboard-checklist.yaml`, `ent/tools/lib/onboard.mjs` | `ent-onboard` skill |
 | Offboard | `ent/tools/lib/offboard.mjs` | `ent-offboard` skill |
 | WordPress MCP | `ent/tools/run-wordpress-mcp.mjs` | `ent/tools/lib/wp-smoke.mjs` |
 | CLI subcommand | `ent/tools/ent.mjs` | `ent/docs/EXECUTION.md` |

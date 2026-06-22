@@ -17,7 +17,7 @@
 ## Quick start
 
 ```bash
-git clone https://github.com/Roots-and-Fruit/ent.git my-workspace/ent
+git clone <repository-url> my-workspace/ent
 cd my-workspace
 node ent/tools/ent.mjs scaffold --workspace-root .
 ```

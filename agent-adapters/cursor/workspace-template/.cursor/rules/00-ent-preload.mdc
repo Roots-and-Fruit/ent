@@ -44,6 +44,7 @@ node ent/tools/ent.mjs offboard --workspace-root . --dry-run
 | Cursor rules/hooks | `ent/agent-adapters/cursor/workspace-template/.cursor/` | `ent/tools/lib/sync.mjs` |
 | Skill | `ent/agent-adapters/shared/skills/` | → `.cursor/skills/` |
 | WP MCP | `ent/tools/run-wordpress-mcp.mjs` | `ent/tools/lib/wp-smoke.mjs` |
+| Onboard checklist | `ent/onboard-checklist.yaml` | `ent/tools/lib/onboard-checklist.mjs` |
 
 Check IDs and phases: `.ent/session-context.md`.
 

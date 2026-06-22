@@ -28,6 +28,9 @@ export function collectFiles(dir, options = {}) {
     if (rel === "test/golden/branding-boundary.txt") {
       continue;
     }
+    if (rel === "test/golden/branding-allowlist.txt") {
+      continue;
+    }
     if (rel === "package-lock.json") {
       continue;
     }
@@ -48,17 +51,40 @@ export function scanAbsolutePaths(content) {
   return matches;
 }
 
+export function loadBrandingAllowlist(patternsPath) {
+  const allowPath = path.join(path.dirname(patternsPath), "branding-allowlist.txt");
+  if (!fs.existsSync(allowPath)) {
+    return [];
+  }
+  return fs
+    .readFileSync(allowPath, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [file, pattern] = line.split(":");
+      return { file: file.trim(), pattern: pattern.trim() };
+    });
+}
+
 export function scanBrandingBoundary(entRoot, patternsPath) {
   const patterns = fs
     .readFileSync(patternsPath, "utf8")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+  const allowlist = loadBrandingAllowlist(patternsPath);
   const matches = [];
   for (const file of collectFiles(entRoot, { root: entRoot })) {
     const content = fs.readFileSync(file, "utf8");
     const rel = path.relative(entRoot, file).split(path.sep).join("/");
     for (const pattern of patterns) {
+      const allowed = allowlist.some(
+        (entry) => entry.file === rel && entry.pattern.toLowerCase() === pattern.toLowerCase()
+      );
+      if (allowed) {
+        continue;
+      }
       if (content.toLowerCase().includes(pattern.toLowerCase())) {
         matches.push({ file: rel, pattern });
       }

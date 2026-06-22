@@ -1,5 +1,7 @@
 version: "1.0.0"
 
+# User-facing onboard.html sections: onboard-checklist.yaml
+
 core_checks:
   - id: core.node
     description: Node.js is available on PATH

@@ -1,20 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseEnvFile } from "./env.mjs";
+import { getEntRoot } from "./manifest.mjs";
+import { loadOnboardChecklist, resolveChecklistSections } from "./onboard-checklist.mjs";
 import { fetchWpMcpAbilities } from "./wp-smoke.mjs";
 
-const READ_PATTERNS = [
-  /post/i,
-  /page/i,
-  /content/i,
-  /get-site/i,
-  /list.*post/i,
-  /read/i,
-];
-const EDIT_PATTERNS = [/create/i, /update/i, /edit/i, /write/i, /publish/i, /delete/i];
-const PLUGIN_LIST_PATTERNS = [/plugin/i, /theme/i, /extension/i];
-const PLUGIN_UPDATE_PATTERNS = [/update.*plugin/i, /install.*plugin/i, /upgrade/i, /activate/i];
-const ANALYTICS_PATTERNS = [/analytics/i, /ga4/i, /plausible/i, /search.?console/i, /gsc/i];
+const FOOTER_HTML =
+  'A <a href="https://rootsandfruit.com" rel="noopener">Roots &amp; Fruit</a> project';
 
 function escapeHtml(value) {
   return String(value)
@@ -26,51 +18,6 @@ function escapeHtml(value) {
 
 function checkStatus(report, id) {
   return report.checks.find((c) => c.id === id)?.status === "pass";
-}
-
-function abilityHaystack(abilities) {
-  return abilities
-    .map((a) => `${a.name} ${a.label} ${a.description}`.toLowerCase())
-    .join(" ");
-}
-
-function matchesAny(text, patterns) {
-  return patterns.some((pattern) => pattern.test(text));
-}
-
-function matchesAbilities(abilities, patterns) {
-  if (abilities.length === 0) {
-    return false;
-  }
-  return abilities.some((ability) => {
-    const blob = `${ability.name} ${ability.label} ${ability.description}`.toLowerCase();
-    return matchesAny(blob, patterns);
-  });
-}
-
-export function deriveCapabilities(report, abilities = []) {
-  const connected = checkStatus(report, "wp.mcp_transport") && checkStatus(report, "wp.rest_auth");
-  const haystack = abilityHaystack(abilities);
-
-  return {
-    connected,
-    content: {
-      read: connected && (matchesAbilities(abilities, READ_PATTERNS) || checkStatus(report, "wp.rest_auth")),
-      edit: connected && matchesAbilities(abilities, EDIT_PATTERNS),
-    },
-    plugins: {
-      list: connected && matchesAbilities(abilities, PLUGIN_LIST_PATTERNS),
-      manage: connected && matchesAbilities(abilities, PLUGIN_UPDATE_PATTERNS),
-    },
-    security: {
-      audits: false,
-      upcoming: true,
-    },
-    analytics: {
-      web: connected && matchesAny(haystack, ANALYTICS_PATTERNS),
-      searchConsole: connected && /search.?console|gsc/i.test(haystack),
-    },
-  };
 }
 
 export async function fetchSiteTitle(workspaceRoot) {
@@ -108,9 +55,13 @@ function checkbox(checked) {
   return `<span class="check ${checked ? "check-on" : "check-off"}" aria-hidden="true">${checked ? "✓" : ""}</span>`;
 }
 
-function capabilityItem(checked, label, hintHtml = "") {
-  const hint = hintHtml ? `<p class="hint">${hintHtml}</p>` : "";
-  return `<li class="capability-item">${checkbox(checked)}<div><span class="cap-label">${escapeHtml(label)}</span>${hint}</div></li>`;
+function capabilityItem(item) {
+  let hint = item.hint ?? "";
+  if (item.hintLink && hint) {
+    hint = `${hint} <a href="${escapeHtml(item.hintLink)}" rel="noopener">Ability guide</a>`;
+  }
+  const hintHtml = hint ? `<p class="hint">${hint}</p>` : "";
+  return `<li class="capability-item">${checkbox(item.checked)}<div><span class="cap-label">${escapeHtml(item.label)}</span>${hintHtml}</div></li>`;
 }
 
 function setupAlerts(report) {
@@ -133,7 +84,7 @@ function setupAlerts(report) {
 
 function renderAbilitiesList(abilities) {
   if (abilities.length === 0) {
-    return `<p class="muted">No public abilities were returned yet. Your site exposes MCP meta-tools; ask your agent to run <code>discover-abilities</code> after you register abilities with <code>meta.mcp.public</code>.</p>`;
+    return `<p class="muted">No public abilities were returned yet. Ask your agent to run <code>discover-abilities</code> after you register abilities with <code>meta.mcp.public</code>.</p>`;
   }
   const rows = abilities
     .map(
@@ -144,7 +95,26 @@ function renderAbilitiesList(abilities) {
   return `<div class="ability-grid">${rows}</div>`;
 }
 
+function renderChecklistSections(sections) {
+  return sections
+    .map((section) => {
+      const items = section.items.map((item) => capabilityItem(item)).join("\n");
+      return `<section class="card" data-section-id="${escapeHtml(section.id)}">
+    <h2>${escapeHtml(section.title)}</h2>
+    <ul class="capability-list">
+      ${items}
+    </ul>
+  </section>`;
+    })
+    .join("\n");
+}
+
 export async function buildOnboardPageModel(workspaceRoot, report) {
+  const entRoot = path.join(workspaceRoot, "ent");
+  const checklist = loadOnboardChecklist(
+    fs.existsSync(path.join(entRoot, "onboard-checklist.yaml")) ? entRoot : getEntRoot()
+  );
+
   const env = parseEnvFile(path.join(workspaceRoot, ".env"));
   const url = env.WP_MCP_URL?.trim();
   const username = env.WP_MCP_USERNAME?.trim();
@@ -170,74 +140,13 @@ export async function buildOnboardPageModel(workspaceRoot, report) {
     siteTitle,
     mcpServerName,
     abilities,
-    capabilities: deriveCapabilities(report, abilities),
+    sections: resolveChecklistSections(checklist, report, abilities),
     ready: report.summary.fail === 0 && report.summary.skip === 0,
   };
 }
 
 export function renderOnboardHtml(model) {
-  const { report, siteTitle, mcpServerName, abilities, capabilities, ready } = model;
-
-  const editHow = `Register WordPress abilities with <code>meta.mcp.public =&gt; true</code> for actions like <code>create-post</code> and <code>update-post</code>, or ask your agent in Cursor: <em>"Create a draft post titled…"</em> once those abilities exist. <a href="https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/creating-abilities.md" rel="noopener">MCP Adapter ability guide</a>`;
-
-  const pluginHow = `Expose plugin and theme management abilities on your site (custom abilities or a provider plugin), then refresh this page after audit. Until then, manage updates in <code>wp-admin</code>.`;
-
-  const securityHow = `Coming soon — Ent will help you schedule security audits and apply fixes from Cursor.`;
-
-  const analyticsHow = `Register analytics abilities (GA4, Plausible, Search Console) with the MCP Adapter, or ask your developer to expose read-only reporting abilities with <code>meta.mcp.public</code>.`;
-
-  const contentSection = `<section class="card">
-    <h2>Manage / edit content</h2>
-    <ul class="capability-list">
-      ${capabilityItem(capabilities.content.read, "Read posts and pages")}
-      ${capabilityItem(
-        capabilities.content.edit,
-        "Edit posts and pages",
-        capabilities.content.edit ? "" : editHow
-      )}
-    </ul>
-  </section>`;
-
-  const pluginsSection = `<section class="card">
-    <h2>Manage plugin &amp; theme updates</h2>
-    <ul class="capability-list">
-      ${capabilityItem(capabilities.plugins.list, "See and list plugins and themes")}
-      ${capabilityItem(
-        capabilities.plugins.manage,
-        "Manage plugin and theme updates",
-        capabilities.plugins.manage ? "" : pluginHow
-      )}
-    </ul>
-  </section>`;
-
-  const securitySection = `<section class="card">
-    <h2>Security</h2>
-    <ul class="capability-list">
-      ${capabilityItem(false, "Run regular security audits and fixes", securityHow)}
-    </ul>
-  </section>`;
-
-  const analyticsSection = `<section class="card">
-    <h2>Analytics</h2>
-    <ul class="capability-list">
-      ${capabilityItem(
-        capabilities.analytics.web,
-        "See web analytics (GA4, Plausible, etc.)",
-        capabilities.analytics.web ? "" : analyticsHow
-      )}
-      ${capabilityItem(
-        capabilities.analytics.searchConsole,
-        "Search Console",
-        capabilities.analytics.searchConsole ? "" : analyticsHow
-      )}
-    </ul>
-  </section>`;
-
-  const abilitiesSection = `<section class="card">
-    <h2>All abilities</h2>
-    <p class="lede">WordPress abilities your agent can discover on <strong>${escapeHtml(siteTitle)}</strong> via MCP server <code>${escapeHtml(mcpServerName)}</code>.</p>
-    ${renderAbilitiesList(abilities)}
-  </section>`;
+  const { report, siteTitle, mcpServerName, abilities, sections, ready } = model;
 
   const welcome = ready
     ? `You're connected. Choose what you want to do with <strong>${escapeHtml(siteTitle)}</strong> from Cursor — here's what's available today.`
@@ -257,75 +166,63 @@ export function renderOnboardHtml(model) {
   <title>Ent — ${escapeHtml(siteTitle)}</title>
   <style>
     :root {
-      --rf-green: #3a5f41;
-      --rf-green-deep: #2a4530;
-      --rf-cream: #f8f6f1;
-      --rf-fruit: #b85c38;
-      --rf-fruit-soft: #e8d5cc;
-      --rf-text: #2b2b2b;
-      --rf-muted: #5c5c5c;
-      --rf-card: #ffffff;
-      --rf-border: #e4e0d8;
-      --rf-shadow: 0 8px 28px rgba(42, 69, 48, 0.08);
+      --ent-bg: #f6f7f5;
+      --ent-bg-end: #eef1ec;
+      --ent-surface: #ffffff;
+      --ent-text: #1e1e1e;
+      --ent-muted: #5a5a5a;
+      --ent-border: #e0e4dc;
+      --ent-accent: #3d6b4f;
+      --ent-accent-deep: #2d503c;
+      --ent-highlight: #4a6fa5;
+      --ent-shadow: 0 8px 28px rgba(30, 30, 30, 0.06);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      color: var(--rf-text);
-      background: linear-gradient(180deg, var(--rf-cream) 0%, #f1ede6 100%);
+      color: var(--ent-text);
+      background: linear-gradient(180deg, var(--ent-bg) 0%, var(--ent-bg-end) 100%);
       line-height: 1.55;
     }
     .page { max-width: 820px; margin: 0 auto; padding: 2.5rem 1.5rem 3rem; }
-    .hero {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .logo {
-      width: 88px;
-      height: 88px;
-      object-fit: contain;
-      margin-bottom: 0.75rem;
-    }
-    .brand { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: var(--rf-green-deep); margin: 0; }
-    .tagline { color: var(--rf-muted); margin: 0.35rem 0 1rem; }
+    .hero { text-align: center; margin-bottom: 2rem; }
+    .logo { width: 88px; height: 88px; object-fit: contain; margin-bottom: 0.75rem; }
+    .brand { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ent-accent-deep); margin: 0; }
+    .tagline { color: var(--ent-muted); margin: 0.35rem 0 1rem; }
     .welcome {
-      background: var(--rf-card);
-      border: 1px solid var(--rf-border);
-      border-left: 4px solid var(--rf-fruit);
+      background: var(--ent-surface);
+      border: 1px solid var(--ent-border);
+      border-left: 4px solid var(--ent-highlight);
       border-radius: 12px;
       padding: 1rem 1.25rem;
-      box-shadow: var(--rf-shadow);
+      box-shadow: var(--ent-shadow);
       text-align: left;
     }
     .card {
-      background: var(--rf-card);
-      border: 1px solid var(--rf-border);
+      background: var(--ent-surface);
+      border: 1px solid var(--ent-border);
       border-radius: 14px;
       padding: 1.25rem 1.35rem;
       margin: 1rem 0;
-      box-shadow: var(--rf-shadow);
+      box-shadow: var(--ent-shadow);
     }
-    .card h2 {
-      margin: 0 0 0.75rem;
-      font-size: 1.15rem;
-      color: var(--rf-green-deep);
-    }
-    .lede { margin: 0 0 1rem; color: var(--rf-muted); }
+    .card h2 { margin: 0 0 0.75rem; font-size: 1.15rem; color: var(--ent-accent-deep); }
+    .lede { margin: 0 0 1rem; color: var(--ent-muted); }
     .capability-list { list-style: none; padding: 0; margin: 0; }
     .capability-item {
       display: flex;
       gap: 0.75rem;
       align-items: flex-start;
       padding: 0.65rem 0;
-      border-top: 1px solid var(--rf-border);
+      border-top: 1px solid var(--ent-border);
     }
     .capability-item:first-child { border-top: 0; padding-top: 0; }
     .check {
       width: 1.35rem;
       height: 1.35rem;
       border-radius: 4px;
-      border: 2px solid var(--rf-border);
+      border: 2px solid var(--ent-border);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -333,66 +230,58 @@ export function renderOnboardHtml(model) {
       flex-shrink: 0;
       margin-top: 0.15rem;
     }
-    .check-on {
-      background: var(--rf-green);
-      border-color: var(--rf-green);
-      color: #fff;
-      font-weight: 700;
-    }
+    .check-on { background: var(--ent-accent); border-color: var(--ent-accent); color: #fff; font-weight: 700; }
     .check-off { background: #fff; }
     .cap-label { font-weight: 600; }
-    .hint {
-      margin: 0.35rem 0 0;
-      font-size: 0.92rem;
-      color: var(--rf-muted);
-    }
-    .hint a { color: var(--rf-fruit); }
-    .setup { border-left: 4px solid var(--rf-fruit); }
+    .hint { margin: 0.35rem 0 0; font-size: 0.92rem; color: var(--ent-muted); }
+    .hint a { color: var(--ent-highlight); }
+    .setup { border-left: 4px solid var(--ent-highlight); }
     .setup-list { margin: 0; padding-left: 1.2rem; }
     .setup-list li { margin: 0.4rem 0; }
     .ability-grid { display: grid; gap: 0.75rem; }
     .ability {
-      border: 1px solid var(--rf-border);
+      border: 1px solid var(--ent-border);
       border-radius: 10px;
       padding: 0.85rem 1rem;
-      background: var(--rf-cream);
+      background: var(--ent-bg);
     }
-    .ability h3 { margin: 0 0 0.25rem; font-size: 1rem; color: var(--rf-green-deep); }
+    .ability h3 { margin: 0 0 0.25rem; font-size: 1rem; color: var(--ent-accent-deep); }
     .ability-name { margin: 0 0 0.35rem; font-size: 0.85rem; }
-    .muted { color: var(--rf-muted); }
+    .muted { color: var(--ent-muted); }
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 0.88em;
-      background: #efeae2;
+      background: #e8ebe6;
       padding: 0.1em 0.35em;
       border-radius: 4px;
     }
     footer {
       margin-top: 2.5rem;
       padding-top: 1.25rem;
-      border-top: 1px solid var(--rf-border);
+      border-top: 1px solid var(--ent-border);
       text-align: center;
       font-size: 0.92rem;
-      color: var(--rf-muted);
+      color: var(--ent-muted);
     }
-    footer a { color: var(--rf-green); font-weight: 600; text-decoration: none; }
-    footer a:hover { color: var(--rf-fruit); }
+    footer a { color: var(--ent-accent); font-weight: 600; text-decoration: none; }
+    footer a:hover { color: var(--ent-highlight); }
     @media (prefers-color-scheme: dark) {
       :root {
-        --rf-cream: #1a1f1c;
-        --rf-card: #232925;
-        --rf-text: #ece8e1;
-        --rf-muted: #b5b0a8;
-        --rf-border: #3a433d;
-        --rf-green: #6fa878;
-        --rf-green-deep: #9fd4a8;
-        --rf-fruit: #e09874;
+        --ent-bg: #141816;
+        --ent-bg-end: #1a1f1c;
+        --ent-surface: #232925;
+        --ent-text: #ece8e1;
+        --ent-muted: #b5b0a8;
+        --ent-border: #3a433d;
+        --ent-accent: #6fa878;
+        --ent-accent-deep: #9fd4a8;
+        --ent-highlight: #8ab4e8;
       }
-      body { background: linear-gradient(180deg, #141816 0%, #1a1f1c 100%); }
       .logo-light { display: none; }
       .logo-dark { display: inline; }
       code { background: #2f3631; }
       .ability { background: #1a1f1c; }
+      .check-off { background: var(--ent-surface); }
     }
     .logo-dark { display: none; }
   </style>
@@ -412,15 +301,15 @@ export function renderOnboardHtml(model) {
 
     ${setupAlerts(report)}
 
-    ${contentSection}
-    ${pluginsSection}
-    ${securitySection}
-    ${analyticsSection}
-    ${abilitiesSection}
+    ${renderChecklistSections(sections)}
 
-    <footer>
-      A <a href="https://rootsandfruit.com" rel="noopener">Roots &amp; Fruit</a> project
-    </footer>
+    <section class="card">
+      <h2>All abilities</h2>
+      <p class="lede">Abilities your agent can discover on <strong>${escapeHtml(siteTitle)}</strong> via MCP server <code>${escapeHtml(mcpServerName)}</code>.</p>
+      ${renderAbilitiesList(abilities)}
+    </section>
+
+    <footer>${FOOTER_HTML}</footer>
   </div>
   <script type="application/json" id="ent-audit-data">${auditJson}</script>
 </body>
