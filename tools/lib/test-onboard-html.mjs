@@ -37,9 +37,10 @@ export function runOnboardHtmlTest() {
   });
 
   const mcp = sections.find((s) => s.id === "mcp_support");
-  assert.ok(mcp.items.some((i) => i.kind === "group_header" && i.label === "WordPress MCP"));
-  assert.ok(mcp.items.some((i) => i.kind === "group_header" && i.label.includes("Blocks MCP")));
-  assert.ok(mcp.items.some((i) => i.kind === "agent_prompt"));
+  assert.equal(mcp.groups.length, 3);
+  assert.ok(mcp.groups.some((g) => g.label === "WordPress MCP"));
+  assert.ok(mcp.groups.some((g) => g.label.includes("Blocks MCP")));
+  assert.ok(mcp.groups.some((g) => g.agentPrompt));
 
   const groups = probeMcpSupport("/tmp/workspace", baseReport, { rest: { namespaces: [] } });
   assert.equal(groups.length, 3);

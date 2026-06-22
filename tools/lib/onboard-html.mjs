@@ -82,7 +82,7 @@ function copyOnboardAssets(workspaceRoot) {
   const dest = path.join(workspaceRoot, ".ent", "assets");
   fs.mkdirSync(dest, { recursive: true });
 
-  for (const file of ["ent.png", "ent-dark.png"]) {
+  for (const file of ["ent.png"]) {
     const workspaceSrc = path.join(workspaceRoot, "ent", "assets", file);
     const kitSrc = path.join(entRoot, "assets", file);
     const src = fs.existsSync(workspaceSrc) ? workspaceSrc : kitSrc;
@@ -116,17 +116,59 @@ function capabilityItem(item) {
     : "";
 
   const classes = ["capability-item"];
-  if (item.kind === "group_header") {
-    classes.push("mcp-group-header");
-  } else if (item.group) {
-    classes.push("mcp-group-child");
-  }
   if (item.kind === "agent_prompt") {
     classes.push("agent-prompt-item");
   }
 
-  const labelClass = item.kind === "group_header" ? "cap-label cap-group-label" : "cap-label";
+  const labelClass = "cap-label";
   return `<li class="${classes.join(" ")}" data-item-kind="${escapeHtml(item.kind ?? "item")}">${statusIcon(item.checked)}<div><span class="${labelClass}">${escapeHtml(item.label)}</span>${hintHtml}</div></li>`;
+}
+
+function mcpTaskItem(item) {
+  const hint = item.hint ?? "";
+  const hintHtml = hint ? `<p class="hint">${escapeHtml(hint)}</p>` : "";
+  return `<li class="mcp-task" data-item-kind="${escapeHtml(item.kind ?? "check")}">
+    ${statusIcon(item.checked)}
+    <div>
+      <span class="mcp-task-label">${escapeHtml(item.label)}</span>
+      ${hintHtml}
+    </div>
+  </li>`;
+}
+
+function renderMcpAgentPrompt(prompt) {
+  return `<div class="mcp-agent-prompt">
+    <p class="mcp-agent-prompt-label">${escapeHtml(prompt.label)}</p>
+    <p class="hint agent-prompt"><strong>Copy into Cursor chat:</strong> ${escapeHtml(prompt.hint)}</p>
+  </div>`;
+}
+
+function renderMcpGroup(group) {
+  const tasks = group.children.map((item) => mcpTaskItem(item)).join("\n");
+  const prompt = group.agentPrompt ? renderMcpAgentPrompt(group.agentPrompt) : "";
+  return `<section class="mcp-subsection" data-mcp-id="${escapeHtml(group.id)}">
+    <header class="mcp-subsection-head">
+      ${statusIcon(group.checked)}
+      <div>
+        <h3 class="mcp-subsection-title">${escapeHtml(group.label)}</h3>
+        <p class="mcp-subsection-lede">${escapeHtml(group.description)}</p>
+      </div>
+    </header>
+    <ul class="mcp-task-grid">
+      ${tasks}
+    </ul>
+    ${prompt}
+  </section>`;
+}
+
+function renderMcpSupportSection(section) {
+  const groups = (section.groups ?? []).map((group) => renderMcpGroup(group)).join("\n");
+  return `<section class="card mcp-support-card" data-section-id="${escapeHtml(section.id)}">
+    ${sectionHead(section.id, section.title)}
+    <div class="mcp-groups">
+      ${groups}
+    </div>
+  </section>`;
 }
 
 function heroSection(siteTitle, ready, abilities) {
@@ -203,6 +245,9 @@ function sectionHead(sectionId, title, customLede = null) {
 function renderChecklistSections(sections) {
   return sections
     .map((section) => {
+      if (section.id === "mcp_support" && section.groups?.length) {
+        return renderMcpSupportSection(section);
+      }
       const items = section.items.map((item) => capabilityItem(item)).join("\n");
       return `<section class="card" data-section-id="${escapeHtml(section.id)}">
     ${sectionHead(section.id, section.title)}
@@ -262,10 +307,7 @@ function siteHeader() {
   return `<header class="site-header">
   <div>
     <div class="brand-row">
-      <picture>
-        <source srcset="assets/ent-dark.png" media="(prefers-color-scheme: dark)" />
-        <img class="logo" src="assets/ent.png" alt="Ent" width="56" height="56" />
-      </picture>
+      <img class="logo" src="assets/ent.png" alt="Ent" width="56" height="56" />
       <h1 class="brand">Ent</h1>
     </div>
     <p class="tagline">Your knowledgeable agent for your WordPress site</p>
@@ -330,6 +372,7 @@ export function renderOnboardHtml(model, options = {}) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
   <title>Ent — ${escapeHtml(siteTitle)}</title>
   <meta name="description" content="Your Ent onboarding dashboard — MCP support, abilities, and next steps for ${escapeHtml(siteTitle)}." />
   ${cssBlock}

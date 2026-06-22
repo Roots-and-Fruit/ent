@@ -20,21 +20,8 @@
   --font-display: "Zilla Slab", Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(24% 0.012 70);
-    --foreground: oklch(94% 0.012 84);
-    --card: oklch(28% 0.014 70);
-    --card-foreground: oklch(94% 0.012 84);
-    --primary: oklch(72% 0.13 45);
-    --muted: oklch(32% 0.014 70);
-    --muted-foreground: oklch(70% 0.014 80);
-    --accent: oklch(34% 0.02 110);
-    --accent-foreground: oklch(94% 0.012 84);
-    --sage: oklch(64% 0.08 135);
-    --border: oklch(100% 0 0 / 0.12);
-    --shadow-soft: 0 1px 2px oklch(0% 0 0 / 0.2), 0 8px 24px -12px oklch(0% 0 0 / 0.35);
-  }
+html {
+  color-scheme: light only;
 }
 
 * {
@@ -288,31 +275,99 @@ h4 {
   color: var(--foreground);
 }
 
-.cap-group-label {
+.mcp-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.mcp-subsection {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
+  padding: 1.25rem 1.5rem;
+}
+
+.mcp-subsection-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mcp-subsection-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
   font-weight: 600;
-  font-size: 1rem;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
 }
 
-.mcp-group-header {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-
-.mcp-group-header:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
-}
-
-.mcp-group-child {
-  padding-left: 0.25rem;
-}
-
-.mcp-group-child .cap-label {
-  font-weight: 400;
+.mcp-subsection-lede {
+  margin: 0.35rem 0 0;
   font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.mcp-task-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem 1.25rem;
+}
+
+@media (min-width: 560px) {
+  .mcp-task-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mcp-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.mcp-task .status-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.1rem;
+}
+
+.mcp-task .status-icon svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.mcp-task-label {
+  font-size: 13px;
+  line-height: 1.4;
   color: var(--card-foreground);
+}
+
+.mcp-task .hint {
+  margin-top: 0.2rem;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mcp-agent-prompt {
+  margin-top: 1rem;
+  padding: 0.875rem;
+  border-radius: 5px;
+  border: 1px dashed color-mix(in oklab, var(--primary) 35%, transparent);
+  background: color-mix(in oklab, var(--card) 60%, transparent);
+}
+
+.mcp-agent-prompt-label {
+  margin: 0 0 0.35rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
 }
 
 .agent-prompt-item {

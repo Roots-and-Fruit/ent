@@ -226,6 +226,13 @@ async function cmdOnboard(args) {
   console.log(
     `    pass=${result.report.summary.pass} fail=${result.report.summary.fail} skip=${result.report.summary.skip}`
   );
+  if (result.report.summary.fail > 0) {
+    console.log("    audit fails (onboard.html was still updated):");
+    for (const check of result.report.checks.filter((c) => c.status === "fail")) {
+      console.log(`      · ${check.id} — ${check.message}`);
+    }
+    console.log("    note: exit code 1 until audit is clean; .ent/state.json is not written yet");
+  }
   if (result.statePath) {
     console.log(`OK  state → ${result.statePath}`);
     console.log("");

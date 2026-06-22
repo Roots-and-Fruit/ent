@@ -166,42 +166,19 @@ export function probeMcpSupport(workspaceRoot, report, siteProfile) {
 }
 
 export function resolveMcpSupportSection(section, workspaceRoot, report, siteProfile) {
-  const groups = probeMcpSupport(workspaceRoot, report, siteProfile);
-  const items = [];
-
-  for (const group of groups) {
-    const headerChecked = group.groupOk;
-    items.push({
-      id: `${group.id}_header`,
-      label: group.label,
-      checked: headerChecked,
-      hint: group.description,
-      group: group.id,
-      kind: "group_header",
-      upcoming: false,
-    });
-
-    for (const child of group.children) {
-      items.push({
-        ...child,
-        kind: child.kind ?? "status",
-        upcoming: false,
-      });
-    }
-
-    if (!group.groupOk && group.missing?.agent_prompt) {
-      items.push({
-        id: `${group.id}_agent_prompt`,
-        label: "Ask your agent to set this up",
-        checked: false,
-        hint: group.missing.agent_prompt,
-        hintLink: group.missing.hint_link ?? null,
-        group: group.id,
-        kind: "agent_prompt",
-        upcoming: false,
-      });
-    }
-  }
-
-  return items;
+  return probeMcpSupport(workspaceRoot, report, siteProfile).map((group) => ({
+    id: group.id,
+    label: group.label,
+    description: group.description ?? "",
+    checked: group.groupOk,
+    children: group.children,
+    agentPrompt:
+      !group.groupOk && group.missing?.agent_prompt
+        ? {
+            label: "Ask your agent to set this up",
+            hint: group.missing.agent_prompt,
+            hintLink: group.missing.hint_link ?? null,
+          }
+        : null,
+  }));
 }

@@ -177,7 +177,8 @@ export function resolveChecklistSections(checklist, report, abilities, workspace
         return {
           id: section.id,
           title: section.title,
-          items: resolveMcpSupportSection(section, workspaceRoot, report, siteProfile),
+          groups: resolveMcpSupportSection(section, workspaceRoot, report, siteProfile),
+          items: [],
         };
       }
       if (section.source?.type === "audit_profile") {
@@ -207,5 +208,5 @@ export function resolveChecklistSections(checklist, report, abilities, workspace
         items: resolveItemSection(section, report, abilities),
       };
     })
-    .filter((section) => section.items.length > 0);
+    .filter((section) => section.items.length > 0 || (section.groups?.length ?? 0) > 0);
 }
