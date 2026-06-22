@@ -1,3 +1,5 @@
+<h1>Ent</h1>
+      <p>Ent is an immutable agent ops kit. Clone it into <code>ent/</code> inside a workspace; open the <strong>workspace root</strong> in your AI client (not <code>ent/</code> alone).</p>
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
     <td width="25%" valign="top" align="center" style="padding-right: 1.25rem;">
@@ -7,8 +9,6 @@
       </picture>
     </td>
     <td width="75%" valign="top">
-      <h1>Ent</h1>
-      <p>Ent is an immutable agent ops kit. Clone it into <code>ent/</code> inside a workspace; open the <strong>workspace root</strong> in your AI client (not <code>ent/</code> alone).</p>
       <p>Every new chat in Cursor starts cold: tools and generic instructions load automatically, but <strong>not</strong> your project’s layout, house rules, or where work should begin today. Ent closes that gap with <strong>session preload</strong> — projected rules plus a <code>sessionStart</code> hook — so the first message is informed instead of a re-briefing exercise.</p>
     </td>
   </tr>
