@@ -11,6 +11,7 @@
     { "id": "wp.mcp_config", "profile": "wordpress_mcp", "status": "pass" },
     { "id": "wp.mcp_launcher", "profile": "wordpress_mcp", "status": "fail" },
     { "id": "wp.rest_auth", "profile": "wordpress_mcp", "status": "fail" },
-    { "id": "wp.mcp_transport", "profile": "wordpress_mcp", "status": "fail" }
+    { "id": "wp.mcp_transport", "profile": "wordpress_mcp", "status": "fail" },
+    { "id": "wp.site_identity", "profile": "wordpress_mcp", "status": "fail" }
   ]
 }

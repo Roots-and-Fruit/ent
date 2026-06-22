@@ -68,7 +68,12 @@ export function planOffboard(workspaceRoot, options) {
   }
 
   if (options.clearAudit) {
-    for (const rel of [".ent/audit.json", ".ent/onboard.html", ".ent/onboard-log.json"]) {
+    for (const rel of [
+      ".ent/audit.json",
+      ".ent/site-profile.json",
+      ".ent/onboard.html",
+      ".ent/onboard-log.json",
+    ]) {
       if (fs.existsSync(path.join(root, rel))) {
         actions.push({ type: "delete_file", path: rel });
       }

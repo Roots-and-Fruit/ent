@@ -28,6 +28,8 @@ profiles:
         description: REST /wp/v2/users/me succeeds with Application Password
       - id: wp.mcp_transport
         description: MCP initialize and tools/list succeed
+      - id: wp.site_identity
+        description: WP_MCP_URL host matches the WordPress site from /wp-json
 
 workspace_scaffold:
   - path: content/
@@ -46,7 +48,7 @@ workspace_teardown:
       - delete .ent/state.json
   optional:
     - flag: --clear-audit
-      description: Remove .ent/audit.json, onboard.html, onboard-log.json
+      description: Remove .ent/audit.json, site-profile.json, onboard.html, onboard-log.json
     - flag: --clear-env
       description: Remove WP_MCP_* from .env
     - flag: --remove-projected

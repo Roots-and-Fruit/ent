@@ -40,6 +40,7 @@ node tools/ent.mjs test branding-boundary
 node tools/ent.mjs test kit-runtime-boundary
 node tools/ent.mjs test mcp-config
 node tools/ent.mjs test onboard-html
+node tools/ent.mjs test site-profile
 node tools/ent.mjs test onboard --workspace-root "$ENT_FIXTURE"
 node tools/ent.mjs test offboard --workspace-root "$ENT_FIXTURE"
 node tools/ent.mjs test sync --workspace-root "$ENT_FIXTURE"
@@ -53,6 +54,7 @@ PowerShell equivalent for fixture-scoped gates:
 
 ```powershell
 node tools/ent.mjs test mcp-config
+node tools/ent.mjs test site-profile
 node tools/ent.mjs test onboard --workspace-root $env:ENT_FIXTURE
 node tools/ent.mjs test offboard --workspace-root $env:ENT_FIXTURE
 node tools/ent.mjs test sync --workspace-root $env:ENT_FIXTURE

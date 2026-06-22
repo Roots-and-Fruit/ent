@@ -1,6 +1,10 @@
+import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
+import { readHookInput, hookProjectDir } from "./hook-io.mjs";
+import { buildMcpGuardMessage } from "./site-snapshot.mjs";
 
-const input = JSON.parse(await readStdin());
+const input = await readHookInput();
 const toolName = String(input.tool_name ?? "");
 const toolInputRaw = input.tool_input;
 const toolInput =
@@ -21,11 +25,21 @@ if (!isWordPressMcp) {
   process.exit(0);
 }
 
+const projectDir = hookProjectDir(input);
+const profilePath = path.join(projectDir, ".ent", "site-profile.json");
+let profile = null;
+if (fs.existsSync(profilePath)) {
+  try {
+    profile = JSON.parse(fs.readFileSync(profilePath, "utf8"));
+  } catch {
+    profile = null;
+  }
+}
+
 process.stdout.write(
   JSON.stringify({
     permission: "allow",
-    agent_message:
-      "Ent MCP: use workspace .env credentials. Re-run ent audit after MCP or .env changes.",
+    agent_message: buildMcpGuardMessage(profile, toolName, toolInput),
   })
 );
 
@@ -35,16 +49,4 @@ function safeParse(value) {
   } catch {
     return {};
   }
-}
-
-function readStdin() {
-  return new Promise((resolve, reject) => {
-    let data = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on("end", () => resolve(data));
-    process.stdin.on("error", reject);
-  });
 }

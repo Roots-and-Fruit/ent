@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { formatRoutingSummary, formatSiteProfileBlock } from "./site-snapshot.mjs";
 
 const STATIC_REL = path.join("agent-adapters", "shared", "preload", "ent-session-context.md");
 const CONTEXT_FILE = path.join(".ent", "session-context.md");
@@ -209,6 +210,11 @@ function readStaticBlock(entCoreDir) {
   return fs.readFileSync(staticPath, "utf8").trim();
 }
 
+function siteProfileLines(projectDir) {
+  const profile = readJsonFile(path.join(projectDir, ".ent", "site-profile.json"));
+  return [formatSiteProfileBlock(profile), formatRoutingSummary()];
+}
+
 function workStartBlock(openMode, kitRoot, consumerRoot, preloadRoot) {
   const lines = ["## Where to start this session", ""];
 
@@ -269,7 +275,10 @@ export function buildSessionPreload(fallbackDir, options = {}) {
   ].join("\n");
 
   const auditRoot = consumerRoot ?? (isConsumerRoot(preloadRoot) ? preloadRoot : preloadRoot);
-  const sessionContextBody = [dynamicBlock, staticBlock].filter(Boolean).join("\n\n");
+  const profileRoot = isConsumerRoot(auditRoot) ? auditRoot : consumerRoot ?? auditRoot;
+  const siteBlocks = isConsumerRoot(profileRoot) ? siteProfileLines(profileRoot) : [];
+
+  const sessionContextBody = [dynamicBlock, ...siteBlocks, staticBlock].filter(Boolean).join("\n\n");
   const contextFilePath = path.join(
     isConsumerRoot(auditRoot) ? auditRoot : preloadRoot,
     ...CONTEXT_FILE.split("/")
@@ -280,6 +289,7 @@ export function buildSessionPreload(fallbackDir, options = {}) {
     "",
     dynamicBlock.trim(),
     "",
+    ...(siteBlocks.length ? [...siteBlocks, ""] : []),
     "Full extension map: `.ent/session-context.md` on the consumer root.",
     "Invariants: `.cursor/rules/00-ent-preload.mdc` on the consumer root.",
   ].join("\n");

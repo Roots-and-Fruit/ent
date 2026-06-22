@@ -10,6 +10,7 @@ import {
 import { portableWorkspaceRoot, relToWorkspace } from "./paths.mjs";
 import { runWpMcpSmoke } from "./wp-smoke.mjs";
 import { writeOnboardHtml } from "./onboard-html.mjs";
+import { buildSiteProfile, writeSiteProfile } from "./site-profile.mjs";
 
 export { writeOnboardHtml };
 
@@ -185,6 +186,8 @@ export async function runAudit(workspaceRoot, options = {}) {
     );
   }
 
+  const mcpServerName = fs.existsSync(mcpPath) ? readMcpServerName(mcpPath) : null;
+
   if (url && user && pass && live) {
     const smoke = await runWpMcpSmoke({ workspaceRoot: root, url, username: user, password: pass });
     const restPass = smoke.stage !== "rest" && smoke.stage !== "env";
@@ -206,15 +209,38 @@ export async function runAudit(workspaceRoot, options = {}) {
         smoke.stage
       )
     );
+
+    const siteProfile = await buildSiteProfile(root, {
+      url,
+      username: user,
+      password: pass,
+      mcpServerName,
+      mcpSmoke: smoke,
+    });
+    writeSiteProfile(root, siteProfile);
+    const identityOk = siteProfile.checks.identity_ok;
+    checks.push(
+      check(
+        "wp.site_identity",
+        "wordpress_mcp",
+        identityOk ? "pass" : "fail",
+        identityOk
+          ? `WP_MCP_URL matches site host (${siteProfile.site.host})`
+          : `WP_MCP_URL host (${siteProfile.mcp.endpoint_host}) does not match site (${siteProfile.site.host ?? "unknown"})`,
+        siteProfile.site.host ?? ""
+      )
+    );
   } else if (url && user && pass) {
     checks.push(
       check("wp.rest_auth", "wordpress_mcp", "skip", "Live REST check deferred", "live_gate_deferred"),
-      check("wp.mcp_transport", "wordpress_mcp", "skip", "Live MCP transport deferred", "live_gate_deferred")
+      check("wp.mcp_transport", "wordpress_mcp", "skip", "Live MCP transport deferred", "live_gate_deferred"),
+      check("wp.site_identity", "wordpress_mcp", "skip", "Live site identity check deferred", "live_gate_deferred")
     );
   } else {
     checks.push(
       check("wp.rest_auth", "wordpress_mcp", "fail", "Complete .env before live REST check"),
-      check("wp.mcp_transport", "wordpress_mcp", "fail", "Complete .env before live MCP check")
+      check("wp.mcp_transport", "wordpress_mcp", "fail", "Complete .env before live MCP check"),
+      check("wp.site_identity", "wordpress_mcp", "fail", "Complete .env before site identity check")
     );
   }
 

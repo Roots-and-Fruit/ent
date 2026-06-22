@@ -47,6 +47,16 @@ Audit verifies remote WordPress MCP transport — not the local Cursor MCP proce
 
 Do not claim MCP tools are ready until the user has reloaded and enabled the server.
 
+## Site profile and agent routing
+
+After a clean audit, Ent writes `.ent/site-profile.json` (site host, MCP adapter status, public abilities) and injects routing rules into session preload.
+
+- If `wp.site_identity` fails, `WP_MCP_URL` points at a different host than the live site — fix `.env` before continuing.
+- Agents should use **REST** for core WP reads when no MCP ability exists; **execute-ability** only for abilities listed in the profile.
+- SEO/Yoast and plugin tasks require matching abilities — REST auth alone does not enable them.
+
+Policy reference: `ent/agent-adapters/shared/site-routing.md`
+
 ## Boundaries
 
 - Update `ent/` via `git pull` only

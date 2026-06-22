@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseEnvFile } from "./env.mjs";
 import { getEntRoot } from "./manifest.mjs";
 import { loadOnboardChecklist, resolveChecklistSections } from "./onboard-checklist.mjs";
+import { readSiteProfile } from "./site-profile.mjs";
 import { fetchWpMcpAbilities } from "./wp-smoke.mjs";
 
 const FOOTER_HTML =
@@ -120,8 +121,9 @@ export async function buildOnboardPageModel(workspaceRoot, report) {
   const username = env.WP_MCP_USERNAME?.trim();
   const password = env.WP_MCP_PASSWORD?.trim();
 
-  let abilities = [];
-  if (checkStatus(report, "wp.mcp_transport") && url && username && password) {
+  const profile = readSiteProfile(workspaceRoot);
+  let abilities = profile?.abilities ?? [];
+  if (abilities.length === 0 && checkStatus(report, "wp.mcp_transport") && url && username && password) {
     try {
       const result = await fetchWpMcpAbilities({ url, username, password });
       abilities = result.abilities;
@@ -130,7 +132,7 @@ export async function buildOnboardPageModel(workspaceRoot, report) {
     }
   }
 
-  const siteTitle = (await fetchSiteTitle(workspaceRoot)) ?? "your site";
+  const siteTitle = profile?.site?.name ?? (await fetchSiteTitle(workspaceRoot)) ?? "your site";
   const mcpCheck = report.checks.find((c) => c.id === "wp.mcp_config");
   const mcpMatch = mcpCheck?.message?.match(/"([^"]+)"/);
   const mcpServerName = mcpMatch?.[1] ?? "wordpress";

@@ -12,14 +12,17 @@ sections:
       wp.mcp_launcher: MCP launcher installed in ent/
       wp.rest_auth: REST API authentication works
       wp.mcp_transport: MCP transport connected to your site
+      wp.site_identity: MCP URL matches your WordPress site
 
   - id: content
     title: Manage / edit content
     items:
       - id: read
         label: Read posts and pages
+        hint: >-
+          Use REST for core reads when MCP abilities are not registered.
+          Re-run onboard after exposing read abilities on your site.
         pass_when:
-          any_audit_pass: [wp.rest_auth]
           any_ability_pattern: [post, page, content, get-site, read]
       - id: edit
         label: Edit posts and pages
@@ -65,3 +68,15 @@ sections:
         hint: Register Search Console abilities with the MCP Adapter when available on your site.
         pass_when:
           any_ability_pattern: [search-console, searchconsole, gsc]
+
+  - id: seo
+    title: SEO & metadata
+    items:
+      - id: yoast
+        label: Read SEO scores (Yoast, Rank Math, etc.)
+        hint: >-
+          SEO plugins need a public MCP ability on your site.
+          Agents cannot read Yoast scores via REST or generic MCP without that ability.
+        hint_link: https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/creating-abilities.md
+        pass_when:
+          any_ability_pattern: [yoast, seo, seo-score, rank-math, rankmath]
