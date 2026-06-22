@@ -2,7 +2,7 @@
 
 ## Shipped
 
-- Live E2E verified on `Ent-workspace-test` against production WordPress MCP
+- Live E2E verified on a local workspace fixture against production WordPress MCP
 - Audit writes `.ent/state.json` when all checks pass with zero skips
 - `README.md` quickstart complete
 

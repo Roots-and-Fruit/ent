@@ -1,6 +1,6 @@
 # Build Ent — execution plan
 
-Phased build at `C:\Users\reach\OneDrive\Ent`. Test fixture: `C:\Users\reach\OneDrive\Ent-workspace-test`.
+Phased build of the Ent kit. Use a local consumer workspace fixture for gates — see `docs/TESTING.md`.
 
 ## Documentation voice
 
@@ -41,3 +41,4 @@ Ent documentation states what we build and how it works. Boundaries describe wha
 
 - Branding gate belongs in CLI (`test branding-boundary`) so docs stay clean.
 - `yaml` dependency keeps manifest human-editable; validator enforces structure at gate time.
+- Branding gate also rejects absolute host paths (Windows drive-letter paths) in committed kit files.

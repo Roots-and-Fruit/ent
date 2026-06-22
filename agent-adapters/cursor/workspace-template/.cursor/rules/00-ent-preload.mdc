@@ -1,0 +1,58 @@
+---
+description: Ent preload — layout, workflows, extension map, audit semantics
+alwaysApply: true
+---
+
+# Ent preload
+
+Manifest-driven agent ops kit (not an app). CLI: `node ent/tools/ent.mjs`. Contract: `ent/ent.manifest.yaml`. Dynamic snapshot: `.ent/session-context.md`.
+
+## Layout
+
+| Zone | Path | Role |
+|------|------|------|
+| Immutable core | `ent/` | Kit — `git pull` only; keep git clean |
+| Mutable ring | `content/`, `.ent/`, `.env` | Project work, audit, credentials |
+| Projected config | `.cursor/` | From `ent sync` — edit `ent/agent-adapters/` templates |
+
+Open **workspace root** (parent of `ent/`), not `ent/` alone — fails `core.workspace_open_mode`. MCP loads from consumer `.cursor/mcp.json`.
+
+**Multi-root dev:** consumer fixture = ops start point; kit repo = product edits. Session hook writes `.ent/session-context.md` on the consumer root with paths.
+
+## Workflows
+
+**Onboard** (`/ent-onboard` when `.ent/state.json` missing): `scaffold` → `audit` → `render-onboard`
+
+```bash
+node ent/tools/ent.mjs scaffold --workspace-root .
+node ent/tools/ent.mjs audit --workspace-root .
+node ent/tools/ent.mjs sync --workspace-root . --agent cursor
+```
+
+**Update ent:** `git -C ent pull` → sync → audit
+
+## Extension map
+
+| Adding… | Start | Also |
+|---------|-------|------|
+| Audit check | `ent/ent.manifest.yaml`, `ent/tools/lib/audit.mjs` | `ent/docs/TESTING.md` |
+| Profile | `ent/ent.manifest.yaml` | copy `wordpress_mcp` |
+| Cursor rules/hooks | `ent/agent-adapters/cursor/workspace-template/.cursor/` | `ent/tools/lib/sync.mjs` |
+| Skill | `ent/agent-adapters/shared/skills/` | → `.cursor/skills/` |
+| WP MCP | `ent/tools/run-wordpress-mcp.mjs` | `ent/tools/lib/wp-smoke.mjs` |
+
+Check IDs and phases: `.ent/session-context.md`.
+
+## Audit
+
+- **fail** — fix; **skip** — deferred (**skip ≠ pass**)
+- Clean audit (zero fail, zero skip) → `.ent/state.json`
+
+## Docs
+
+`AGENTS.md` · `ent/docs/EXECUTION.md` · `ent/docs/TESTING.md` · `ent/PLAN.md`
+
+## Anti-patterns
+
+- Edit workspace `.cursor/` — edit templates + sync
+- Mutable work inside `ent/` · commit `.env`

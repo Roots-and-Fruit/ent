@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { writeDevRootsManifest } from "./dev-roots.mjs";
 
 export function normalizeJson(text) {
   return JSON.stringify(JSON.parse(text), null, 2);
@@ -31,19 +32,17 @@ export function copyDir(src, dest, options = {}) {
   }
 }
 
-export function writeBootRule(entRoot, workspaceRoot) {
-  const bootSource = path.join(entRoot, "ENT-BOOT.md");
-  const bootBody = fs.readFileSync(bootSource, "utf8").trimEnd();
-  const rulePath = path.join(workspaceRoot, ".cursor", "rules", "00-ent-boot.mdc");
-  const ruleContent = `---
-description: Ent workspace boot — layout, onboard, verification
-alwaysApply: true
----
-
-${bootBody}
-`;
-  fs.mkdirSync(path.dirname(rulePath), { recursive: true });
-  fs.writeFileSync(rulePath, ruleContent, "utf8");
+export function pruneObsoleteCursorRules(rulesDir) {
+  const obsolete = ["00-ent-boot.mdc", "01-ent-layout.mdc", "02-ent-agent-preload.mdc", "00-ent-dev-multroot.mdc"];
+  if (!fs.existsSync(rulesDir)) {
+    return;
+  }
+  for (const name of obsolete) {
+    const rulePath = path.join(rulesDir, name);
+    if (fs.existsSync(rulePath)) {
+      fs.unlinkSync(rulePath);
+    }
+  }
 }
 
 export function mergeAgentsMd(workspaceRoot, templatePath) {
@@ -69,6 +68,27 @@ export function mergeAgentsMd(workspaceRoot, templatePath) {
   }
 }
 
+export function syncKitDevCursor(entRoot) {
+  const templateCursor = path.join(
+    entRoot,
+    "agent-adapters",
+    "cursor",
+    "workspace-template",
+    ".cursor"
+  );
+  const kitDevRules = path.join(entRoot, "agent-adapters", "cursor", "kit-dev", "rules");
+  const destCursor = path.join(entRoot, ".cursor");
+  const destRules = path.join(destCursor, "rules");
+
+  fs.mkdirSync(destRules, { recursive: true });
+  pruneObsoleteCursorRules(destRules);
+  if (fs.existsSync(kitDevRules)) {
+    copyDir(kitDevRules, destRules);
+  }
+  copyDir(path.join(templateCursor, "hooks"), path.join(destCursor, "hooks"));
+  copyFile(path.join(templateCursor, "hooks.json"), path.join(destCursor, "hooks.json"));
+}
+
 export function syncCursor(entRoot, workspaceRoot) {
   const templateCursor = path.join(
     entRoot,
@@ -86,7 +106,7 @@ export function syncCursor(entRoot, workspaceRoot) {
     copyDir(sharedSkills, destSkills);
   }
 
-  writeBootRule(entRoot, workspaceRoot);
+  pruneObsoleteCursorRules(path.join(destCursor, "rules"));
 
   const agentsTemplate = path.join(
     entRoot,
@@ -143,6 +163,10 @@ export function syncWorkspace(entRoot, workspaceRoot, agent = "cursor") {
 
   if (agent === "cursor" || agent === "all") {
     syncCursor(entRoot, workspaceRoot);
+    if (path.resolve(workspaceRoot) !== path.resolve(entRoot)) {
+      syncKitDevCursor(entRoot);
+      writeDevRootsManifest(entRoot, workspaceRoot);
+    }
   }
   if (agent === "claude-code" || agent === "all") {
     syncClaudeCode(entRoot, workspaceRoot);

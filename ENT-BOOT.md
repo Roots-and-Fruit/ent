@@ -6,7 +6,7 @@ Index: `AGENTS.md`. Execution protocol: `docs/EXECUTION.md`. Testing: `docs/TEST
 
 - **Layout:** workspace root contains `ent/` (immutable kit) + mutable ring (`content/`, `.ent/`, `.env`)
 - **Open:** workspace root in Cursor — the parent folder that contains `ent/`
-- **Config:** `ent sync` projects agent adapters into workspace `.cursor/` (or `.mcp.json` for Claude Code)
+- **Config:** `ent sync` projects agent adapters into workspace `.cursor/` (or `.mcp.json` for Claude Code). Syncing a consumer fixture also refreshes ent-kit `.cursor/` for `ent-dev.code-workspace` preload.
 
 ## Onboard
 

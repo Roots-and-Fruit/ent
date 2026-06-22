@@ -12,9 +12,10 @@
 ## First commands for Phase 3
 
 ```bash
-node tools/ent.mjs sync --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test --agent cursor
-node tools/ent.mjs audit --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
-node tools/ent.mjs test negative-audit --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
+export ENT_FIXTURE=../workspace-fixture
+node tools/ent.mjs sync --workspace-root "$ENT_FIXTURE" --agent cursor
+node tools/ent.mjs audit --workspace-root "$ENT_FIXTURE"
+node tools/ent.mjs test negative-audit --workspace-root "$ENT_FIXTURE"
 ```
 
 ## Risks for Phase 3

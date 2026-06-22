@@ -1,0 +1,20 @@
+---
+description: Ent kit dev — multi-root pointer; full preload on consumer fixture
+alwaysApply: true
+---
+
+# Ent kit dev (multi-root)
+
+| Folder | Role |
+|--------|------|
+| **ent-kit** | Product source — manifest, CLI, adapters |
+| **Ent-workspace-test** | Consumer fixture — full preload rules, MCP, `.env`, `.ent/` |
+
+**Start here for consumer work** — audit, onboard, MCP. Kit edits happen in **ent-kit**; sync refreshes this folder.
+
+```bash
+node ent/tools/ent.mjs sync --workspace-root ../Ent-workspace-test --agent cursor
+node ent/tools/ent.mjs audit --workspace-root ../Ent-workspace-test
+```
+
+Hooks on ent-kit still run for session snapshot; invariants live on **Ent-workspace-test**.

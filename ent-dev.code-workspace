@@ -1,0 +1,13 @@
+{
+  "folders": [
+    {
+      "name": "ent-kit",
+      "path": "."
+    },
+    {
+      "name": "Ent-workspace-test",
+      "path": "../Ent-workspace-test"
+    }
+  ],
+  "settings": {}
+}

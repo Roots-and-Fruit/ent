@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { parseEnvFile } from "./env.mjs";
+import { portableWorkspaceRoot, relToWorkspace } from "./paths.mjs";
 import { runWpMcpSmoke } from "./wp-smoke.mjs";
 
 function check(id, profile, status, message, evidence = "") {
@@ -29,9 +30,10 @@ function entVersion(entDir) {
 export async function runAudit(workspaceRoot, options = {}) {
   const { live = true } = options;
   const checks = [];
-  const entDir = path.join(workspaceRoot, "ent");
-  const envPath = path.join(workspaceRoot, ".env");
-  const mcpPath = path.join(workspaceRoot, ".cursor", "mcp.json");
+  const root = path.resolve(workspaceRoot);
+  const entDir = path.join(root, "ent");
+  const envPath = path.join(root, ".env");
+  const mcpPath = path.join(root, ".cursor", "mcp.json");
 
   // core.node
   try {
@@ -45,7 +47,13 @@ export async function runAudit(workspaceRoot, options = {}) {
   const entKit = path.join(entDir, "tools", "ent.mjs");
   if (fs.existsSync(entKit)) {
     checks.push(
-      check("core.workspace_open_mode", "core", "pass", "Workspace contains ent/ kit", entKit)
+      check(
+        "core.workspace_open_mode",
+        "core",
+        "pass",
+        "Workspace contains ent/ kit",
+        relToWorkspace(root, entKit)
+      )
     );
   } else {
     checks.push(
@@ -54,7 +62,7 @@ export async function runAudit(workspaceRoot, options = {}) {
         "core",
         "fail",
         "Open workspace root that contains ent/, not ent/ alone",
-        workspaceRoot
+        "."
       )
     );
   }
@@ -73,7 +81,15 @@ export async function runAudit(workspaceRoot, options = {}) {
 
   // core.agent_config
   if (fs.existsSync(mcpPath)) {
-    checks.push(check("core.agent_config", "core", "pass", "Cursor MCP config present", mcpPath));
+    checks.push(
+      check(
+        "core.agent_config",
+        "core",
+        "pass",
+        "Cursor MCP config present",
+        relToWorkspace(root, mcpPath)
+      )
+    );
   } else {
     checks.push(check("core.agent_config", "core", "fail", "Run ent sync to create .cursor/mcp.json"));
   }
@@ -110,7 +126,7 @@ export async function runAudit(workspaceRoot, options = {}) {
   }
 
   if (url && user && pass && live) {
-    const smoke = await runWpMcpSmoke({ workspaceRoot, url, username: user, password: pass });
+    const smoke = await runWpMcpSmoke({ workspaceRoot: root, url, username: user, password: pass });
     const restPass = smoke.stage !== "rest" && smoke.stage !== "env";
     checks.push(
       check(
@@ -144,7 +160,7 @@ export async function runAudit(workspaceRoot, options = {}) {
 
   const report = {
     ent_version: entVersion(entDir),
-    workspace_root: workspaceRoot,
+    workspace_root: portableWorkspaceRoot(),
     checks,
     summary: summarize(checks),
   };

@@ -9,6 +9,7 @@
 ## First commands for Phase 4
 
 ```bash
-node tools/ent.mjs scaffold --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
-node tools/ent.mjs test scaffold --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
+export ENT_FIXTURE=../workspace-fixture
+node tools/ent.mjs scaffold --workspace-root "$ENT_FIXTURE"
+node tools/ent.mjs test scaffold --workspace-root "$ENT_FIXTURE"
 ```

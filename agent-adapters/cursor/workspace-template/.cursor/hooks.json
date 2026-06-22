@@ -6,6 +6,17 @@
         "command": "node .cursor/hooks/session-boot.mjs"
       }
     ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "node .cursor/hooks/session-preload-fallback.mjs",
+        "matcher": "UserPromptSubmit"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "node .cursor/hooks/session-preload-pretool-fallback.mjs"
+      }
+    ],
     "beforeMCPExecution": [
       {
         "command": "node .cursor/hooks/mcp-guard.mjs"

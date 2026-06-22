@@ -2,7 +2,7 @@
 
 ## Shipped
 
-- Ent repo at `C:\Users\reach\OneDrive\Ent`
+- Ent kit repo with manifest, CLI, and docs
 - `ent.manifest.yaml` v1.0.0 with core checks, `wordpress_mcp` profile, workspace scaffold, agent adapters
 - `tools/ent.mjs validate-manifest` + `test branding-boundary` + `test kit-runtime-boundary`
 - `yaml` package for manifest parsing
@@ -16,11 +16,11 @@
 ## First commands for Phase 2
 
 ```bash
-cd C:\Users\reach\OneDrive\Ent
-git clone C:\Users\reach\OneDrive\Ent C:\Users\reach\OneDrive\Ent-workspace-test\ent
-# implement ent sync + agent-adapters/cursor/workspace-template
-node tools/ent.mjs sync --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test --agent cursor
-node tools/ent.mjs test sync --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
+# See docs/TESTING.md for fixture layout
+export ENT_FIXTURE=../workspace-fixture
+git clone . "$ENT_FIXTURE/ent"
+node tools/ent.mjs sync --workspace-root "$ENT_FIXTURE" --agent cursor
+node tools/ent.mjs test sync --workspace-root "$ENT_FIXTURE"
 ```
 
 ## Risks for Phase 2
