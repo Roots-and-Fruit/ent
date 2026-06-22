@@ -1,0 +1,43 @@
+version: "1.0.0"
+
+core_checks:
+  - id: core.node
+    description: Node.js is available on PATH
+  - id: core.workspace_open_mode
+    description: Cursor opens the workspace root that contains ent/, not ent/ alone
+  - id: core.ent_clean_git
+    description: ent/ working tree is clean (immutable core)
+  - id: core.agent_config
+    description: Projected agent config exists for enabled adapters
+
+profiles:
+  wordpress_mcp:
+    description: Generic WordPress MCP Adapter transport and REST auth
+    checks:
+      - id: wp.env_present
+        description: Workspace .env exists with WP_MCP_* variables
+      - id: wp.env_complete
+        description: WP_MCP_URL, WP_MCP_USERNAME, WP_MCP_PASSWORD are set
+      - id: wp.mcp_config
+        description: MCP server entry points at ent/tools/run-wordpress-mcp.mjs
+      - id: wp.rest_auth
+        description: REST /wp/v2/users/me succeeds with Application Password
+      - id: wp.mcp_transport
+        description: MCP initialize and tools/list succeed
+
+workspace_scaffold:
+  - path: content/
+    description: Mutable site content and operational artifacts
+  - path: .ent/
+    description: Ent workspace state, audit output, onboard checklist
+  - path: .env
+    source: .env.example
+    description: Workspace credentials (create from example when missing)
+
+agents:
+  cursor:
+    description: Cursor IDE adapter
+    template: agent-adapters/cursor/workspace-template
+  claude-code:
+    description: Claude Code adapter
+    template: agent-adapters/claude-code/templates

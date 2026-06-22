@@ -1,0 +1,13 @@
+{
+  "name": "ent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ent — immutable agent ops kit with workspace-ring projection",
+  "scripts": {
+    "validate-manifest": "node tools/ent.mjs validate-manifest"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0"
+  }
+}
