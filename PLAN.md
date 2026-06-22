@@ -11,15 +11,15 @@ Ent documentation states what we build and how it works. Boundaries describe wha
 | Phase | Goal | Status |
 |-------|------|--------|
 | 1 | Manifest + validate-manifest | complete |
-| 2 | ent sync + Cursor adapter | in progress |
-| 3 | ent audit + onboard HTML | pending |
+| 2 | ent sync + Cursor adapter | complete |
+| 3 | ent audit + onboard HTML | in progress |
 | 4 | scaffold + /ent-onboard skill | pending |
 | 5 | WordPress MCP runner | pending |
 | 6 | Live E2E gate | pending |
 
 ## Phase learnings
 
-### Phase 1
+### Phase 2
 
-- Branding gate belongs in CLI (`test branding-boundary`) so docs stay clean.
-- `yaml` dependency keeps manifest human-editable; validator enforces structure at gate time.
+- `node` in mcp.json (not absolute node path) keeps adapter portable across OS.
+- Sync reads live `ent/` dev tree via `getEntRoot()`; fixture `workspace/ent/` clone used only for pristine check.

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "wordpress": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/ent/tools/run-wordpress-mcp.mjs"
+      ],
+      "env": {
+        "OAUTH_ENABLED": "false"
+      }
+    }
+  }
+}

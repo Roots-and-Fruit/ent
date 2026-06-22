@@ -1,0 +1,14 @@
+<!-- ent:begin -->
+
+## Ent workspace
+
+This workspace uses [Ent](https://github.com) kit at `ent/`. Open the **workspace root** (parent of `ent/`), not `ent/` alone.
+
+Onboard: run `/ent-onboard` or:
+
+```bash
+node ent/tools/ent.mjs scaffold --workspace-root .
+node ent/tools/ent.mjs audit --workspace-root .
+```
+
+<!-- ent:end -->

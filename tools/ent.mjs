@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { getEntRoot, loadManifest, validateManifest } from "./lib/manifest.mjs";
 import { scanBrandingBoundary } from "./lib/branding.mjs";
+import { syncWorkspace, assertEntPristine } from "./lib/sync.mjs";
+import { runSyncTest } from "./lib/test-sync.mjs";
 
 function usage() {
   console.log(`Ent kit CLI
@@ -91,6 +93,33 @@ async function cmdTestKitRuntimeBoundary() {
   process.exit(0);
 }
 
+async function cmdSync(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("sync requires --workspace-root");
+    process.exit(1);
+  }
+  const agent = args.agent ?? "cursor";
+  const entRoot = getEntRoot();
+  syncWorkspace(entRoot, workspaceRoot, agent);
+  console.log(`OK  synced agent=${agent} workspace=${workspaceRoot}`);
+  process.exit(0);
+}
+
+async function cmdTestSync(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("test sync requires --workspace-root");
+    process.exit(1);
+  }
+  const entRoot = getEntRoot();
+  const entDir = path.join(workspaceRoot, "ent");
+  assertEntPristine(entDir);
+  runSyncTest(entRoot, workspaceRoot);
+  console.log("OK  test sync");
+  process.exit(0);
+}
+
 async function cmdTest(args) {
   const suite = args._[1];
   if (!suite) {
@@ -103,6 +132,13 @@ async function cmdTest(args) {
       break;
     case "kit-runtime-boundary":
       await cmdTestKitRuntimeBoundary();
+      break;
+    case "sync":
+      if (!args.workspaceRoot) {
+        console.error("test sync requires --workspace-root");
+        process.exit(1);
+      }
+      await cmdTestSync(args);
       break;
     default:
       console.error(`Unknown test suite: ${suite}`);
@@ -124,6 +160,8 @@ async function main() {
       await cmdValidateManifest();
       break;
     case "sync":
+      await cmdSync(args);
+      break;
     case "audit":
     case "render-onboard":
     case "scaffold":

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "wordpress": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${CLAUDE_PROJECT_DIR:-.}/ent/tools/run-wordpress-mcp.mjs"
+      ],
+      "env": {
+        "OAUTH_ENABLED": "false"
+      }
+    }
+  }
+}
