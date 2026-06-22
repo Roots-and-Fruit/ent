@@ -1,7 +1,7 @@
-import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
 import { loadWpMcpEnv, workspaceFromScriptMeta } from "./lib/env.mjs";
+import { resolveNpxInvocation } from "./lib/mcp-config.mjs";
 
 const workspaceRoot = workspaceFromScriptMeta(import.meta.url);
 const { envPath, url, username, password } = loadWpMcpEnv(workspaceRoot);
@@ -27,24 +27,13 @@ const childEnv = {
 };
 
 const packageSpec = "@automattic/mcp-wordpress-remote@latest";
-let spawnCommand;
-let spawnArgs;
-
-if (process.platform === "win32") {
-  const nodeExe = process.execPath;
-  const npxCli = path.join(path.dirname(nodeExe), "node_modules", "npm", "bin", "npx-cli.js");
-  spawnCommand = nodeExe;
-  spawnArgs = [npxCli, "-y", packageSpec];
-} else {
-  spawnCommand = "npx";
-  spawnArgs = ["-y", packageSpec];
-}
+const { command: spawnCommand, args: spawnArgs, shell } = resolveNpxInvocation(packageSpec);
 
 const child = spawn(spawnCommand, spawnArgs, {
   cwd: workspaceRoot,
   env: childEnv,
   stdio: "inherit",
-  shell: false,
+  shell,
 });
 
 child.on("exit", (code, signal) => {

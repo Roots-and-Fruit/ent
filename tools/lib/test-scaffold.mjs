@@ -21,6 +21,10 @@ export function runScaffoldTest(entRoot, workspaceRoot) {
     throw new Error("ent-onboard skill missing after scaffold sync");
   }
 
+  if (!fs.existsSync(path.join(workspaceRoot, ".cursor", "skills", "ent-offboard", "SKILL.md"))) {
+    throw new Error("ent-offboard skill missing after scaffold sync");
+  }
+
   const entAfter = gitStatusPorcelain(entDir);
   if (entBefore !== entAfter) {
     throw new Error("scaffold modified ent/ working tree");

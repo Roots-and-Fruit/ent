@@ -45,6 +45,8 @@ Claude Code gets the same intent via synced project fragments and `.mcp.json` â€
 ```bash
 node ent/tools/ent.mjs validate-manifest
 node ent/tools/ent.mjs sync --workspace-root . --agent cursor
+node ent/tools/ent.mjs onboard --workspace-root . [--log]
+node ent/tools/ent.mjs offboard --workspace-root . [--dry-run]
 node ent/tools/ent.mjs audit --workspace-root .
 node ent/tools/ent.mjs render-onboard --workspace-root .
 node ent/tools/ent.mjs scaffold --workspace-root .

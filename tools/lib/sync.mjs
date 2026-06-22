@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { writeDevRootsManifest } from "./dev-roots.mjs";
+import { deriveMcpServerNameFromUrl, writeWorkspaceMcpJson } from "./mcp-config.mjs";
+import { parseEnvFile } from "./env.mjs";
 
 export function normalizeJson(text) {
   return JSON.stringify(JSON.parse(text), null, 2);
@@ -100,6 +102,12 @@ export function syncCursor(entRoot, workspaceRoot) {
   const destCursor = path.join(workspaceRoot, ".cursor");
   copyDir(templateCursor, destCursor, { skipDirs: new Set(["skills"]) });
 
+  const env = parseEnvFile(path.join(workspaceRoot, ".env"));
+  writeWorkspaceMcpJson(
+    workspaceRoot,
+    deriveMcpServerNameFromUrl(env.WP_MCP_URL?.trim())
+  );
+
   const sharedSkills = path.join(entRoot, "agent-adapters", "shared", "skills");
   const destSkills = path.join(destCursor, "skills");
   if (fs.existsSync(sharedSkills)) {
@@ -122,11 +130,12 @@ export function syncCursor(entRoot, workspaceRoot) {
 
 export function syncClaudeCode(entRoot, workspaceRoot) {
   const templateDir = path.join(entRoot, "agent-adapters", "claude-code", "templates");
-  const mcpSrc = path.join(templateDir, "mcp.json");
-  const mcpDest = path.join(workspaceRoot, ".mcp.json");
-  if (fs.existsSync(mcpSrc)) {
-    copyFile(mcpSrc, mcpDest);
-  }
+  const env = parseEnvFile(path.join(workspaceRoot, ".env"));
+  writeWorkspaceMcpJson(
+    workspaceRoot,
+    deriveMcpServerNameFromUrl(env.WP_MCP_URL?.trim()),
+    { workspaceVar: "${CLAUDE_PROJECT_DIR:-.}", outputBasename: ".mcp.json" }
+  );
 
   const fragmentPath = path.join(templateDir, "CLAUDE.md.fragment");
   const claudeMd = path.join(workspaceRoot, "CLAUDE.md");

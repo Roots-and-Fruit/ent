@@ -1,6 +1,6 @@
 ---
 name: ent-onboard
-description: Onboard a workspace to Ent. Run with /ent-onboard when .ent/state.json is missing or onboarded is false.
+description: Onboard a workspace to Ent. Run with /ent-onboard when .ent/state.json is missing or onboarded is false. Use --logging for a detailed trace.
 disable-model-invocation: true
 ---
 
@@ -11,22 +11,41 @@ Guide the user through Ent workspace setup.
 ## Steps
 
 1. Confirm Cursor opens the **workspace root** (folder containing `ent/`), not `ent/` alone.
-2. Run scaffold:
+2. Run onboard (preferred — single orchestrated flow):
+
+```bash
+node ent/tools/ent.mjs onboard --workspace-root .
+```
+
+If the user asked for **`--logging`**, a trace, or verbose debugging, add `--log` (and optionally `--verbose`):
+
+```bash
+node ent/tools/ent.mjs onboard --workspace-root . --log --verbose
+```
+
+3. Open `.ent/onboard.html` and fix **one** failing check at a time.
+4. Re-run onboard (or `audit`) after each fix until `summary.fail` is 0 and `summary.skip` is 0.
+5. When `--log` was used, tell the user the trace path: `.ent/onboard-log.json` (attach or summarize it when debugging in a new environment).
+
+Legacy step-by-step (only if orchestrator is unavailable):
 
 ```bash
 node ent/tools/ent.mjs scaffold --workspace-root .
-```
-
-3. Run audit and render checklist:
-
-```bash
 node ent/tools/ent.mjs audit --workspace-root .
 node ent/tools/ent.mjs render-onboard --workspace-root .
 ```
 
-4. Open `.ent/onboard.html` and fix **one** failing check at a time.
-5. Re-run audit after each fix until `summary.fail` is 0 for enabled profiles.
-6. Write `.ent/state.json` with `onboarded: true`, `ent_commit`, and `agents: ["cursor"]` only when audit passes.
+`state.json` is written automatically when audit is clean — do not write it manually.
+
+## After onboard passes
+
+Audit verifies remote WordPress MCP transport — not the local Cursor MCP process. Tell the user:
+
+1. **Reload Cursor** — run **Developer: Reload Window** so `.cursor/mcp.json` is picked up (MCP stays disabled until reload).
+2. **Enable MCP** — in Cursor Settings → MCP, enable the server named after the site (not the generic `wordpress` placeholder).
+3. **If MCP fails to connect** — ensure Node.js/npm are on PATH (`npx` must work outside Cursor's bundled node). Re-run `node ent/tools/ent.mjs audit --workspace-root .` and fix `wp.mcp_launcher` if it fails.
+
+Do not claim MCP tools are ready until the user has reloaded and enabled the server.
 
 ## Boundaries
 

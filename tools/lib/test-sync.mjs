@@ -3,23 +3,16 @@ import path from "node:path";
 import { normalizeJson } from "./sync.mjs";
 
 export function runSyncTest(entRoot, workspaceRoot) {
-  const templateMcp = path.join(
-    entRoot,
-    "agent-adapters",
-    "cursor",
-    "workspace-template",
-    ".cursor",
-    "mcp.json"
-  );
   const workspaceMcp = path.join(workspaceRoot, ".cursor", "mcp.json");
   if (!fs.existsSync(workspaceMcp)) {
     throw new Error(`Missing ${workspaceMcp} — run ent sync first`);
   }
 
-  const templateRaw = normalizeJson(fs.readFileSync(templateMcp, "utf8"));
   const workspaceRaw = normalizeJson(fs.readFileSync(workspaceMcp, "utf8"));
-  if (templateRaw !== workspaceRaw) {
-    throw new Error("mcp.json mismatch between template and workspace .cursor/");
+  const parsed = JSON.parse(workspaceRaw);
+  const serverNames = Object.keys(parsed.mcpServers ?? {});
+  if (serverNames.length !== 1) {
+    throw new Error("mcp.json must define exactly one MCP server");
   }
 
   const hooksPath = path.join(workspaceRoot, ".cursor", "hooks.json");
@@ -58,6 +51,11 @@ export function runSyncTest(entRoot, workspaceRoot) {
   const skillPath = path.join(workspaceRoot, ".cursor", "skills", "ent-onboard", "SKILL.md");
   if (!fs.existsSync(skillPath)) {
     throw new Error("Missing ent-onboard skill after sync");
+  }
+
+  const offboardSkill = path.join(workspaceRoot, ".cursor", "skills", "ent-offboard", "SKILL.md");
+  if (!fs.existsSync(offboardSkill)) {
+    throw new Error("Missing ent-offboard skill after sync");
   }
 
   if (!hooks.hooks?.sessionStart?.length) {

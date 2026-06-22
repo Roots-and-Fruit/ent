@@ -1,0 +1,38 @@
+---
+description: Ent portable runtime — harness-agnostic kit work and OS-agnostic CLI/tools
+alwaysApply: true
+---
+
+# Ent portable runtime
+
+## Harness-agnostic
+
+| Zone | Path | Edit when |
+|------|------|-----------|
+| Kit (product) | `ent/` in kit repo | manifest, CLI, adapters, skills, tests |
+| Consumer | workspace root with `ent/` | `.env`, `content/`, `.ent/` |
+| Projected | `.cursor/`, `.mcp.json` | **Never** — change `ent/agent-adapters/` templates, then `ent sync` |
+
+- **CLI is source of truth:** `node ent/tools/ent.mjs …` — not hand-edited projected config.
+- **Cursor vs Claude Code:** same manifest and audit checks; adapters differ (`.cursor/mcp.json` vs workspace `.mcp.json`).
+- **Multi-root dev:** kit edits in **ent-kit**; audit/onboard/MCP on **consumer** fixture — sync bridges them.
+
+## OS-agnostic
+
+- Implement behavior in `tools/**/*.mjs` with `node:path`, `node:fs`, `node:child_process` — no `.ps1` or bash-only scripts under `tools/`.
+- Use `path.join` / `path.resolve`; never hardcode `\` or drive letters in kit code or committed docs.
+- Platform branches (`process.platform`, `where` vs `which`) belong in shared libs (e.g. `tools/lib/mcp-config.mjs`) with unit tests.
+- Generated MCP paths use forward slashes (`${workspaceFolder}/ent/...`) — Cursor/Claude convention on all OSes.
+- Audit/report display paths stay relative (`.`) — see `tools/lib/paths.mjs`.
+
+## Agent shell commands
+
+- Prefer single invocations: `node ent/tools/ent.mjs audit --workspace-root .`
+- Do not chain with `&&` when the user shell may be PowerShell — use `;` or separate runs.
+- When documenting env vars, show bash and PowerShell (see `docs/TESTING.md`).
+
+## Adding or changing runtime behavior
+
+1. `ent/ent.manifest.yaml` + `tools/lib/audit.mjs` for new checks
+2. Golden fixtures under `test/golden/` when audit shape changes
+3. Run gates in `docs/TESTING.md` before calling work done

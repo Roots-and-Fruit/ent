@@ -2,6 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { parseEnvFile } from "./env.mjs";
+import {
+  canResolveNpx,
+  readMcpServerName,
+  refreshWorkspaceMcpJson,
+} from "./mcp-config.mjs";
 import { portableWorkspaceRoot, relToWorkspace } from "./paths.mjs";
 import { runWpMcpSmoke } from "./wp-smoke.mjs";
 
@@ -114,15 +119,59 @@ export async function runAudit(workspaceRoot, options = {}) {
   }
 
   // wp.mcp_config
+  let expectedMcpName = "wordpress";
+  if (url) {
+    const refreshed = await refreshWorkspaceMcpJson(root);
+    expectedMcpName = refreshed.serverName;
+  }
+
   if (fs.existsSync(mcpPath)) {
     const mcpRaw = fs.readFileSync(mcpPath, "utf8");
-    if (mcpRaw.includes("ent/tools/run-wordpress-mcp.mjs")) {
-      checks.push(check("wp.mcp_config", "wordpress_mcp", "pass", "MCP server points at ent/tools/run-wordpress-mcp.mjs"));
-    } else {
+    const actualMcpName = readMcpServerName(mcpPath);
+    if (!mcpRaw.includes("ent/tools/run-wordpress-mcp.mjs")) {
       checks.push(check("wp.mcp_config", "wordpress_mcp", "fail", "MCP server path incorrect"));
+    } else if (url && actualMcpName !== expectedMcpName) {
+      checks.push(
+        check(
+          "wp.mcp_config",
+          "wordpress_mcp",
+          "fail",
+          `MCP server name should be "${expectedMcpName}"`,
+          actualMcpName ?? ""
+        )
+      );
+    } else {
+      const label = actualMcpName ?? expectedMcpName;
+      checks.push(
+        check(
+          "wp.mcp_config",
+          "wordpress_mcp",
+          "pass",
+          `MCP server "${label}" points at ent/tools/run-wordpress-mcp.mjs`
+        )
+      );
     }
   } else {
     checks.push(check("wp.mcp_config", "wordpress_mcp", "fail", "Missing .cursor/mcp.json"));
+  }
+
+  if (url && user && pass) {
+    if (canResolveNpx()) {
+      checks.push(check("wp.mcp_launcher", "wordpress_mcp", "pass", "npx available for MCP launcher"));
+    } else {
+      checks.push(
+        check(
+          "wp.mcp_launcher",
+          "wordpress_mcp",
+          "fail",
+          "Install Node.js/npm on PATH — Cursor's bundled node cannot run npx"
+        )
+      );
+    }
+  } else {
+    checks.push(
+      check("wp.mcp_launcher", "wordpress_mcp", "fail", "Complete .env before MCP launcher check")
+    );
   }
 
   if (url && user && pass && live) {

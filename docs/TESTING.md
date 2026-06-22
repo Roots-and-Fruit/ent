@@ -31,11 +31,25 @@ Set `ENT_FIXTURE` to your fixture path for the commands below (bash: `export ENT
 node tools/ent.mjs validate-manifest
 node tools/ent.mjs test branding-boundary
 node tools/ent.mjs test kit-runtime-boundary
+node tools/ent.mjs test mcp-config
+node tools/ent.mjs test onboard --workspace-root "$ENT_FIXTURE"
+node tools/ent.mjs test offboard --workspace-root "$ENT_FIXTURE"
 node tools/ent.mjs test sync --workspace-root "$ENT_FIXTURE"
 node tools/ent.mjs test negative-audit --workspace-root "$ENT_FIXTURE"
 node tools/ent.mjs test scaffold --workspace-root "$ENT_FIXTURE"
 ```
 
-On Windows PowerShell, use `$env:ENT_FIXTURE` instead of `"$ENT_FIXTURE"`.
+On Windows PowerShell, use `$env:ENT_FIXTURE` instead of `"$ENT_FIXTURE"`. Run each gate as a separate command (do not chain with `&&`).
+
+PowerShell equivalent for fixture-scoped gates:
+
+```powershell
+node tools/ent.mjs test mcp-config
+node tools/ent.mjs test onboard --workspace-root $env:ENT_FIXTURE
+node tools/ent.mjs test offboard --workspace-root $env:ENT_FIXTURE
+node tools/ent.mjs test sync --workspace-root $env:ENT_FIXTURE
+node tools/ent.mjs test negative-audit --workspace-root $env:ENT_FIXTURE
+node tools/ent.mjs test scaffold --workspace-root $env:ENT_FIXTURE
+```
 
 Optional: open `ent-dev.code-workspace` in Cursor — it expects a sibling `Ent-workspace-test/` consumer fixture. Sync also refreshes ent-kit `.cursor/` (preload rules + hooks) for multi-root dev.

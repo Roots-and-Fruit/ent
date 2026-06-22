@@ -21,7 +21,8 @@ Manifest v1.0.0 · Phases 1–6 complete per `ent/PLAN.md`:
 | New profile | `ent/ent.manifest.yaml` profiles | mirror `wordpress_mcp` |
 | Cursor adapter / hooks / rules | `ent/agent-adapters/cursor/workspace-template/` | `ent/tools/lib/sync.mjs` |
 | Shared skill | `ent/agent-adapters/shared/skills/` | sync copies to `.cursor/skills/` |
-| Onboard / scaffold | `ent/tools/lib/scaffold.mjs` | `ent-onboard` skill |
+| Onboard / scaffold | `ent/tools/lib/scaffold.mjs`, `ent/tools/lib/onboard.mjs` | `ent-onboard` skill |
+| Offboard | `ent/tools/lib/offboard.mjs` | `ent-offboard` skill |
 | WordPress MCP | `ent/tools/run-wordpress-mcp.mjs` | `ent/tools/lib/wp-smoke.mjs` |
 | CLI subcommand | `ent/tools/ent.mjs` | `ent/docs/EXECUTION.md` |
 | Boot / preload rule | `ent/ENT-BOOT.md` (human docs) | sync → `00-ent-preload.mdc` |
@@ -30,7 +31,7 @@ Manifest v1.0.0 · Phases 1–6 complete per `ent/PLAN.md`:
 
 **Core:** `core.node`, `core.workspace_open_mode`, `core.ent_clean_git`, `core.agent_config`
 
-**wordpress_mcp:** `wp.env_present`, `wp.env_complete`, `wp.mcp_config`, `wp.rest_auth`, `wp.mcp_transport`
+**wordpress_mcp:** `wp.env_present`, `wp.env_complete`, `wp.mcp_config`, `wp.mcp_launcher`, `wp.rest_auth`, `wp.mcp_transport`
 
 Implementations: `ent/tools/lib/audit.mjs` (runner), `ent/tools/lib/wp-smoke.mjs` (live WP).
 

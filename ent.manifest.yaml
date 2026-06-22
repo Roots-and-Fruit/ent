@@ -20,6 +20,8 @@ profiles:
         description: WP_MCP_URL, WP_MCP_USERNAME, WP_MCP_PASSWORD are set
       - id: wp.mcp_config
         description: MCP server entry points at ent/tools/run-wordpress-mcp.mjs
+      - id: wp.mcp_launcher
+        description: npx is available to launch @automattic/mcp-wordpress-remote locally
       - id: wp.rest_auth
         description: REST /wp/v2/users/me succeeds with Application Password
       - id: wp.mcp_transport
@@ -33,6 +35,22 @@ workspace_scaffold:
   - path: .env
     source: .env.example
     description: Workspace credentials (create from example when missing)
+
+workspace_teardown:
+  default:
+    description: Disconnect Ent MCP and clear onboard state
+    actions:
+      - remove_ent_mcp_servers from .cursor/mcp.json and .mcp.json
+      - delete .ent/state.json
+  optional:
+    - flag: --clear-audit
+      description: Remove .ent/audit.json, onboard.html, onboard-log.json
+    - flag: --clear-env
+      description: Remove WP_MCP_* from .env
+    - flag: --remove-projected
+      description: Delete .cursor/ and .mcp.json
+    - flag: --remove-kit
+      description: Delete ent/ kit checkout
 
 agents:
   cursor:

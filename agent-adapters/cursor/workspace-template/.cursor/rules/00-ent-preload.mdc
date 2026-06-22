@@ -21,12 +21,16 @@ Open **workspace root** (parent of `ent/`), not `ent/` alone — fails `core.wor
 
 ## Workflows
 
-**Onboard** (`/ent-onboard` when `.ent/state.json` missing): `scaffold` → `audit` → `render-onboard`
+**Onboard** (`/ent-onboard` when `.ent/state.json` missing): `onboard` (or `scaffold` → `audit` → `render-onboard`)
 
 ```bash
-node ent/tools/ent.mjs scaffold --workspace-root .
-node ent/tools/ent.mjs audit --workspace-root .
-node ent/tools/ent.mjs sync --workspace-root . --agent cursor
+node ent/tools/ent.mjs onboard --workspace-root .
+```
+
+**Offboard** (`/ent-offboard`): disconnect MCP + clear onboard state — `offboard --dry-run` first
+
+```bash
+node ent/tools/ent.mjs offboard --workspace-root . --dry-run
 ```
 
 **Update ent:** `git -C ent pull` → sync → audit

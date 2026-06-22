@@ -8,6 +8,11 @@ import { runSyncTest } from "./lib/test-sync.mjs";
 import { runNegativeAuditTest } from "./lib/test-negative-audit.mjs";
 import { scaffoldWorkspace } from "./lib/scaffold.mjs";
 import { runScaffoldTest } from "./lib/test-scaffold.mjs";
+import { runMcpConfigTest } from "./lib/test-mcp-config.mjs";
+import { runOnboardLogTest } from "./lib/test-onboard.mjs";
+import { runOffboardTest } from "./lib/test-offboard.mjs";
+import { runOnboard } from "./lib/onboard.mjs";
+import { runOffboard } from "./lib/offboard.mjs";
 import { runAudit, writeAuditReport, writeOnboardHtml, writeStateJson } from "./lib/audit.mjs";
 
 function usage() {
@@ -17,11 +22,13 @@ Usage:
   node tools/ent.mjs validate-manifest
   node tools/ent.mjs sync --workspace-root <path> [--agent cursor|claude-code|all]
   node tools/ent.mjs audit --workspace-root <path>
+  node tools/ent.mjs onboard --workspace-root <path> [--log] [--verbose]
+  node tools/ent.mjs offboard --workspace-root <path> [--dry-run] [--clear-audit] [--clear-env] [--remove-projected] [--remove-kit] [--keep-mcp] [--keep-state]
   node tools/ent.mjs render-onboard --workspace-root <path>
   node tools/ent.mjs scaffold --workspace-root <path>
   node tools/ent.mjs test <suite> --workspace-root <path>
 
-Suites: branding-boundary, kit-runtime-boundary, sync, negative-audit, scaffold
+Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, offboard, sync, negative-audit, scaffold
 `);
 }
 
@@ -144,6 +151,55 @@ async function cmdRenderOnboard(args) {
   process.exit(0);
 }
 
+async function cmdOnboard(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("onboard requires --workspace-root");
+    process.exit(1);
+  }
+  const log = Boolean(args.log);
+  const verbose = Boolean(args.verbose);
+  const result = await runOnboard(getEntRoot(), workspaceRoot, { log, verbose });
+  console.log(`OK  onboard workspace=${workspaceRoot}`);
+  if (result.htmlPath) {
+    console.log(`    checklist → ${result.htmlPath}`);
+  }
+  console.log(
+    `    pass=${result.report.summary.pass} fail=${result.report.summary.fail} skip=${result.report.summary.skip}`
+  );
+  if (result.statePath) {
+    console.log(`OK  state → ${result.statePath}`);
+  }
+  if (result.logPath) {
+    console.log(`OK  log → ${result.logPath}`);
+  }
+  for (const warning of result.logBody.warnings) {
+    console.log(`    warn: ${warning}`);
+  }
+  process.exit(result.exitCode);
+}
+
+async function cmdOffboard(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("offboard requires --workspace-root");
+    process.exit(1);
+  }
+  const result = runOffboard(workspaceRoot, args);
+  const mode = result.dry_run ? "dry-run" : result.applied ? "applied" : "planned";
+  console.log(`OK  offboard (${mode}) workspace=${workspaceRoot}`);
+  for (const action of result.actions) {
+    console.log(`    ${action.type}: ${action.path}${action.servers ? ` (${action.servers.join(", ")})` : ""}`);
+  }
+  if (result.manual_steps?.length) {
+    console.log("    manual:");
+    for (const step of result.manual_steps) {
+      console.log(`      - ${step}`);
+    }
+  }
+  process.exit(0);
+}
+
 async function cmdScaffold(args) {
   const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
   if (!workspaceRoot) {
@@ -191,6 +247,34 @@ async function cmdTestSync(args) {
   process.exit(0);
 }
 
+async function cmdTestMcpConfig() {
+  runMcpConfigTest();
+  console.log("OK  test mcp-config");
+  process.exit(0);
+}
+
+async function cmdTestOnboard(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("test onboard requires --workspace-root");
+    process.exit(1);
+  }
+  await runOnboardLogTest(getEntRoot(), workspaceRoot);
+  console.log("OK  test onboard");
+  process.exit(0);
+}
+
+async function cmdTestOffboard(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("test offboard requires --workspace-root");
+    process.exit(1);
+  }
+  runOffboardTest(getEntRoot(), workspaceRoot);
+  console.log("OK  test offboard");
+  process.exit(0);
+}
+
 async function cmdTest(args) {
   const suite = args._[1];
   if (!suite) {
@@ -203,6 +287,23 @@ async function cmdTest(args) {
       break;
     case "kit-runtime-boundary":
       await cmdTestKitRuntimeBoundary();
+      break;
+    case "mcp-config":
+      await cmdTestMcpConfig();
+      break;
+    case "onboard":
+      if (!args.workspaceRoot) {
+        console.error("test onboard requires --workspace-root");
+        process.exit(1);
+      }
+      await cmdTestOnboard(args);
+      break;
+    case "offboard":
+      if (!args.workspaceRoot) {
+        console.error("test offboard requires --workspace-root");
+        process.exit(1);
+      }
+      await cmdTestOffboard(args);
       break;
     case "sync":
       if (!args.workspaceRoot) {
@@ -249,6 +350,12 @@ async function main() {
       break;
     case "audit":
       await cmdAudit(args);
+      break;
+    case "onboard":
+      await cmdOnboard(args);
+      break;
+    case "offboard":
+      await cmdOffboard(args);
       break;
     case "render-onboard":
       await cmdRenderOnboard(args);

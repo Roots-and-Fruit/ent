@@ -10,12 +10,18 @@ Index: `AGENTS.md`. Execution protocol: `docs/EXECUTION.md`. Testing: `docs/TEST
 
 ## Onboard
 
-Run **`/ent-onboard`** when `.ent/state.json` is missing or `onboarded` is false.
+Run **`/ent-onboard`** when `.ent/state.json` is missing or `onboarded` is false. Use **`/ent-onboard --logging`** (or `onboard --log`) when debugging in a new environment.
 
 ```bash
-node ent/tools/ent.mjs scaffold --workspace-root .
-node ent/tools/ent.mjs audit --workspace-root .
-node ent/tools/ent.mjs render-onboard --workspace-root .
+node ent/tools/ent.mjs onboard --workspace-root . [--log]
+```
+
+## Offboard
+
+Run **`/ent-offboard`** to disconnect Ent MCP and clear onboard state. Dry-run first:
+
+```bash
+node ent/tools/ent.mjs offboard --workspace-root . --dry-run
 ```
 
 ## Update Ent
