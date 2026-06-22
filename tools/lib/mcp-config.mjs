@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import process from "node:process";
 import { parseEnvFile } from "./env.mjs";
 
 const DEFAULT_SERVER_NAME = "wordpress";
+export const WP_MCP_REMOTE_PKG = "@automattic/mcp-wordpress-remote";
 
 export function slugifyMcpServerName(name) {
   return (
@@ -125,6 +126,35 @@ export function writeMcpJson(filePath, parsed) {
   fs.writeFileSync(filePath, JSON.stringify(parsed, null, 2) + "\n", "utf8");
 }
 
+export function resolveBundledWpMcpEntry(entDir) {
+  const entry = path.join(
+    entDir,
+    "node_modules",
+    "@automattic",
+    "mcp-wordpress-remote",
+    "dist",
+    "proxy.js"
+  );
+  return fs.existsSync(entry) ? entry : null;
+}
+
+export function resolveWpMcpLauncher(entDir) {
+  const entry = resolveBundledWpMcpEntry(entDir);
+  if (!entry) {
+    return null;
+  }
+  return {
+    command: process.execPath,
+    args: [entry],
+    shell: false,
+    strategy: "bundled",
+  };
+}
+
+export function canResolveWpMcpLauncher(entDir) {
+  return resolveBundledWpMcpEntry(entDir) !== null;
+}
+
 export function writeWorkspaceMcpJson(workspaceRoot, serverName, options = {}) {
   const { workspaceVar = "${workspaceFolder}", outputBasename = "mcp.json" } = options;
   const resolvedName = serverName?.trim() || DEFAULT_SERVER_NAME;
@@ -138,59 +168,4 @@ export function writeWorkspaceMcpJson(workspaceRoot, serverName, options = {}) {
 export async function refreshWorkspaceMcpJson(workspaceRoot, options = {}) {
   const serverName = await deriveMcpServerName(workspaceRoot);
   return writeWorkspaceMcpJson(workspaceRoot, serverName, options);
-}
-
-export function findOnPath(command) {
-  try {
-    if (process.platform === "win32") {
-      const out = execFileSync("where", [command], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim();
-      return out.split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? null;
-    }
-    return (
-      execFileSync("which", [command], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim() || null
-    );
-  } catch {
-    return null;
-  }
-}
-
-export function resolveNpxInvocation(packageSpec) {
-  const args = ["-y", packageSpec];
-  const pathNpx = findOnPath("npx");
-  if (pathNpx) {
-    return { command: pathNpx, args, shell: false, strategy: "path" };
-  }
-
-  const npxCli = bundledNpxCli();
-  if (fs.existsSync(npxCli)) {
-    return {
-      command: process.execPath,
-      args: [npxCli, ...args],
-      shell: false,
-      strategy: "bundled-npm",
-    };
-  }
-
-  if (process.platform === "win32") {
-    return { command: "npx", args, shell: true, strategy: "shell" };
-  }
-
-  return { command: "npx", args, shell: false, strategy: "path-fallback" };
-}
-
-export function bundledNpxCli() {
-  return path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npx-cli.js");
-}
-
-export function canResolveNpx() {
-  if (findOnPath("npx")) {
-    return true;
-  }
-  return fs.existsSync(bundledNpxCli());
 }

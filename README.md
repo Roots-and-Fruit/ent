@@ -22,6 +22,8 @@ cd my-workspace
 node ent/tools/ent.mjs scaffold --workspace-root .
 ```
 
+`scaffold` runs `npm install` in `ent/` for the bundled WordPress MCP bridge (no runtime `npx`).
+
 In Cursor, run **`/ent-onboard`**. Open the **parent folder** that contains `ent/`, not the kit repo alone.
 
 ## Session preload

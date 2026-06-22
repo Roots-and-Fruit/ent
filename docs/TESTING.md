@@ -22,6 +22,13 @@ Ent-workspace-test/
 
 Set `ENT_FIXTURE` to your fixture path for the commands below (bash: `export ENT_FIXTURE=../Ent-workspace-test`; PowerShell: `$env:ENT_FIXTURE = "..\Ent-workspace-test"`).
 
+After pulling kit changes that add dependencies, refresh the fixture install:
+
+```bash
+git -C "$ENT_FIXTURE/ent" pull
+node tools/ent.mjs sync --workspace-root "$ENT_FIXTURE" --agent cursor
+```
+
 ## Phase gates
 
 ## Verification (all phases)

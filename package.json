@@ -8,6 +8,7 @@
     "validate-manifest": "node tools/ent.mjs validate-manifest"
   },
   "dependencies": {
+    "@automattic/mcp-wordpress-remote": "0.3.5",
     "yaml": "^2.8.0"
   }
 }

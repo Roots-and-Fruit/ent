@@ -1,29 +1,30 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
+import path from "node:path";
+import { getEntRoot } from "./manifest.mjs";
 import {
-  bundledNpxCli,
-  canResolveNpx,
+  canResolveWpMcpLauncher,
   deriveMcpServerNameFromUrl,
-  findOnPath,
-  resolveNpxInvocation,
+  resolveBundledWpMcpEntry,
+  resolveWpMcpLauncher,
   slugifyMcpServerName,
 } from "./mcp-config.mjs";
+import { ensureEntDependencies } from "./deps.mjs";
 
 export function runMcpConfigTest() {
   assert.equal(slugifyMcpServerName("WP Product Talk"), "wp-product-talk");
   assert.equal(deriveMcpServerNameFromUrl("https://wpproducttalk.com/wp-json/mcp/x"), "wpproducttalk-com");
 
-  const invocation = resolveNpxInvocation("@automattic/mcp-wordpress-remote@latest");
-  assert.ok(invocation.command);
-  assert.deepEqual(invocation.args.slice(0, 2), ["-y", "@automattic/mcp-wordpress-remote@latest"]);
+  const entDir = getEntRoot();
+  ensureEntDependencies(entDir);
 
-  const pathNpx = findOnPath("npx");
-  const bundledNpx = fs.existsSync(bundledNpxCli());
-  if (pathNpx) {
-    assert.equal(invocation.strategy, "path");
-  } else if (bundledNpx) {
-    assert.equal(invocation.strategy, "bundled-npm");
-  }
+  const entry = resolveBundledWpMcpEntry(entDir);
+  assert.ok(entry, "bundled MCP entry must exist after ensureEntDependencies");
+  assert.ok(entry.replace(/\\/g, "/").endsWith("@automattic/mcp-wordpress-remote/dist/proxy.js"));
 
-  assert.equal(canResolveNpx(), Boolean(pathNpx || bundledNpx));
+  const launcher = resolveWpMcpLauncher(entDir);
+  assert.ok(launcher);
+  assert.equal(launcher.strategy, "bundled");
+  assert.equal(launcher.command, process.execPath);
+  assert.deepEqual(launcher.args, [entry]);
+  assert.equal(canResolveWpMcpLauncher(entDir), true);
 }

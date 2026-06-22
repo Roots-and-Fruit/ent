@@ -4,7 +4,7 @@ import process from "node:process";
 import { execSync } from "node:child_process";
 import { scaffoldWorkspace } from "./scaffold.mjs";
 import { runAudit, writeAuditReport, writeOnboardHtml, writeStateJson } from "./audit.mjs";
-import { canResolveNpx, readMcpServerName, resolveNpxInvocation } from "./mcp-config.mjs";
+import { canResolveWpMcpLauncher, readMcpServerName } from "./mcp-config.mjs";
 import { parseEnvFile } from "./env.mjs";
 import { portableWorkspaceRoot } from "./paths.mjs";
 
@@ -23,7 +23,7 @@ export function probeOnboardEnvironment(workspaceRoot) {
   }
 
   const mcpPath = path.join(workspaceRoot, ".cursor", "mcp.json");
-  const npx = resolveNpxInvocation("@automattic/mcp-wordpress-remote@latest");
+  const entDir = path.join(workspaceRoot, "ent");
   const env = parseEnvFile(path.join(workspaceRoot, ".env"));
   let wpHost = null;
   if (env.WP_MCP_URL?.trim()) {
@@ -37,8 +37,8 @@ export function probeOnboardEnvironment(workspaceRoot) {
   return {
     platform: process.platform,
     node,
-    npx_resolvable: canResolveNpx(),
-    npx_strategy: npx.strategy,
+    mcp_launcher_resolvable: canResolveWpMcpLauncher(entDir),
+    mcp_launcher_strategy: canResolveWpMcpLauncher(entDir) ? "bundled" : "missing",
     mcp_server_name: readMcpServerName(mcpPath),
     wp_mcp_host: wpHost,
     wp_mcp_username: env.WP_MCP_USERNAME?.trim() || null,

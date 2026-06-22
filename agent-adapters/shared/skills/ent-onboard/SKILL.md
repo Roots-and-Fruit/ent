@@ -43,7 +43,7 @@ Audit verifies remote WordPress MCP transport — not the local Cursor MCP proce
 
 1. **Reload Cursor** — run **Developer: Reload Window** so `.cursor/mcp.json` is picked up (MCP stays disabled until reload).
 2. **Enable MCP** — in Cursor Settings → MCP, enable the server named after the site (not the generic `wordpress` placeholder).
-3. **If MCP fails to connect** — ensure Node.js/npm are on PATH (`npx` must work outside Cursor's bundled node). Re-run `node ent/tools/ent.mjs audit --workspace-root .` and fix `wp.mcp_launcher` if it fails.
+3. **If MCP fails to connect** — ensure bundled MCP is installed (`ent/node_modules/@automattic/mcp-wordpress-remote`). Re-run `node ent/tools/ent.mjs scaffold --workspace-root .` or `npm install --omit=dev` from `ent/`, then audit and fix `wp.mcp_launcher` if it fails.
 
 Do not claim MCP tools are ready until the user has reloaded and enabled the server.
 

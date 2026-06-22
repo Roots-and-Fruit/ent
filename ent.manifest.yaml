@@ -21,7 +21,7 @@ profiles:
       - id: wp.mcp_config
         description: MCP server entry points at ent/tools/run-wordpress-mcp.mjs
       - id: wp.mcp_launcher
-        description: npx is available to launch @automattic/mcp-wordpress-remote locally
+        description: Bundled @automattic/mcp-wordpress-remote is installed under ent/node_modules
       - id: wp.rest_auth
         description: REST /wp/v2/users/me succeeds with Application Password
       - id: wp.mcp_transport

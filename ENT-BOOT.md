@@ -16,6 +16,8 @@ Run **`/ent-onboard`** when `.ent/state.json` is missing or `onboarded` is false
 node ent/tools/ent.mjs onboard --workspace-root . [--log]
 ```
 
+Requires `ent/node_modules` (installed by `scaffold` or `sync` after `git pull`).
+
 ## Offboard
 
 Run **`/ent-offboard`** to disconnect Ent MCP and clear onboard state. Dry-run first:

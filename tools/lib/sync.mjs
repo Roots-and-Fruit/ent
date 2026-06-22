@@ -4,6 +4,7 @@ import { execSync } from "node:child_process";
 import { writeDevRootsManifest } from "./dev-roots.mjs";
 import { deriveMcpServerNameFromUrl, writeWorkspaceMcpJson } from "./mcp-config.mjs";
 import { parseEnvFile } from "./env.mjs";
+import { ensureEntDependencies } from "./deps.mjs";
 
 export function normalizeJson(text) {
   return JSON.stringify(JSON.parse(text), null, 2);
@@ -180,6 +181,8 @@ export function syncWorkspace(entRoot, workspaceRoot, agent = "cursor") {
   if (agent === "claude-code" || agent === "all") {
     syncClaudeCode(entRoot, workspaceRoot);
   }
+
+  ensureEntDependencies(entInWorkspace);
 }
 
 export function assertEntPristine(entDir) {

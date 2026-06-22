@@ -2,7 +2,7 @@
 
 ## Shipped
 
-- `tools/run-wordpress-mcp.mjs` — workspace `.env`, spawns `@automattic/mcp-wordpress-remote`
+- `tools/run-wordpress-mcp.mjs` — workspace `.env`, spawns bundled `ent/node_modules/@automattic/mcp-wordpress-remote`
 - `tools/test-wordpress-mcp-http.mjs` — REST + MCP smoke
 - `tools/lib/wp-smoke.mjs` — shared smoke logic used by audit live checks
 

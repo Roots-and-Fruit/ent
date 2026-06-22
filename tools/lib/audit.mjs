@@ -3,7 +3,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { parseEnvFile } from "./env.mjs";
 import {
-  canResolveNpx,
+  canResolveWpMcpLauncher,
   readMcpServerName,
   refreshWorkspaceMcpJson,
 } from "./mcp-config.mjs";
@@ -156,15 +156,23 @@ export async function runAudit(workspaceRoot, options = {}) {
   }
 
   if (url && user && pass) {
-    if (canResolveNpx()) {
-      checks.push(check("wp.mcp_launcher", "wordpress_mcp", "pass", "npx available for MCP launcher"));
+    const entDir = path.join(root, "ent");
+    if (canResolveWpMcpLauncher(entDir)) {
+      checks.push(
+        check(
+          "wp.mcp_launcher",
+          "wordpress_mcp",
+          "pass",
+          "Bundled @automattic/mcp-wordpress-remote in ent/node_modules"
+        )
+      );
     } else {
       checks.push(
         check(
           "wp.mcp_launcher",
           "wordpress_mcp",
           "fail",
-          "Install Node.js/npm on PATH — Cursor's bundled node cannot run npx"
+          "Run scaffold or npm install --omit=dev in ent/ to install bundled MCP"
         )
       );
     }

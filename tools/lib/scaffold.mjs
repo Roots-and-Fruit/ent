@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { syncWorkspace } from "./sync.mjs";
+import { ensureEntDependencies } from "./deps.mjs";
 
 export function scaffoldWorkspace(entRoot, workspaceRoot) {
   const contentDir = path.join(workspaceRoot, "content");
@@ -17,6 +18,7 @@ export function scaffoldWorkspace(entRoot, workspaceRoot) {
   }
 
   syncWorkspace(entRoot, workspaceRoot, "cursor");
+  ensureEntDependencies(path.join(workspaceRoot, "ent"));
 }
 
 export function gitStatusPorcelain(cwd) {
