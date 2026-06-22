@@ -8,7 +8,7 @@ import { runSyncTest } from "./lib/test-sync.mjs";
 import { runNegativeAuditTest } from "./lib/test-negative-audit.mjs";
 import { scaffoldWorkspace } from "./lib/scaffold.mjs";
 import { runScaffoldTest } from "./lib/test-scaffold.mjs";
-import { runAudit, writeAuditReport, writeOnboardHtml } from "./lib/audit.mjs";
+import { runAudit, writeAuditReport, writeOnboardHtml, writeStateJson } from "./lib/audit.mjs";
 
 function usage() {
   console.log(`Ent kit CLI
@@ -120,6 +120,10 @@ async function cmdAudit(args) {
   const out = writeAuditReport(workspaceRoot, report);
   console.log(`OK  audit → ${out}`);
   console.log(`    pass=${report.summary.pass} fail=${report.summary.fail} skip=${report.summary.skip}`);
+  if (report.summary.fail === 0 && report.summary.skip === 0) {
+    const statePath = writeStateJson(workspaceRoot, report);
+    console.log(`OK  state → ${statePath}`);
+  }
   process.exit(report.summary.fail > 0 ? 1 : 0);
 }
 

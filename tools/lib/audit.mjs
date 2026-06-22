@@ -212,3 +212,18 @@ export function writeOnboardHtml(workspaceRoot, report) {
   fs.writeFileSync(outPath, renderOnboardHtml(report), "utf8");
   return outPath;
 }
+
+export function writeStateJson(workspaceRoot, report) {
+  const entDir = path.join(workspaceRoot, "ent");
+  const statePath = path.join(workspaceRoot, ".ent", "state.json");
+  const state = {
+    onboarded: true,
+    ent_commit: report.ent_version,
+    agents: ["cursor"],
+    profiles: ["wordpress_mcp"],
+    onboarded_at: new Date().toISOString(),
+  };
+  fs.mkdirSync(path.dirname(statePath), { recursive: true });
+  fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + "\n", "utf8");
+  return statePath;
+}

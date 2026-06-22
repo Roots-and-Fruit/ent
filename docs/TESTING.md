@@ -15,22 +15,14 @@ Ent-workspace-test/
 
 ## Phase gates
 
-### Phase 1
+## Verification (all phases)
 
 ```bash
 cd C:\Users\reach\OneDrive\Ent
-npm install
 node tools/ent.mjs validate-manifest
-```
-
-Branding boundary:
-
-```bash
 node tools/ent.mjs test branding-boundary
-```
-
-Kit runtime boundary — zero `.ps1` under `tools/`:
-
-```bash
 node tools/ent.mjs test kit-runtime-boundary
+node tools/ent.mjs test sync --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
+node tools/ent.mjs test negative-audit --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
+node tools/ent.mjs test scaffold --workspace-root C:\Users\reach\OneDrive\Ent-workspace-test
 ```

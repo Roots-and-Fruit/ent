@@ -13,11 +13,24 @@ Ent documentation states what we build and how it works. Boundaries describe wha
 | 1 | Manifest + validate-manifest | complete |
 | 2 | ent sync + Cursor adapter | complete |
 | 3 | ent audit + onboard HTML | complete |
-| 4 | scaffold + /ent-onboard skill | in progress |
-| 5 | WordPress MCP runner | pending |
-| 6 | Live E2E gate | pending |
+| 4 | scaffold + /ent-onboard skill | complete |
+| 5 | WordPress MCP runner | complete |
+| 6 | Live E2E gate | complete |
 
 ## Phase learnings
+
+### Phase 6
+
+- Live gate passed with mapped workspace credentials; audit exits 0 only when `fail` and `skip` are both zero.
+- `state.json` writes automatically on clean audit.
+
+### Phase 5
+
+- `runWpMcpSmoke` centralizes REST + MCP initialize + tools/list for audit and CLI.
+
+### Phase 4
+
+- Scaffold preserves non-empty `.env` and leaves `ent/` git tree untouched.
 
 ### Phase 3
 
