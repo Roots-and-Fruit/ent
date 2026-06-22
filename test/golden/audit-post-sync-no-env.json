@@ -1,0 +1,15 @@
+{
+  "description": "After ent sync, workspace without .env",
+  "assert_skip_not_pass": true,
+  "checks": [
+    { "id": "core.node", "profile": "core", "status": "pass" },
+    { "id": "core.workspace_open_mode", "profile": "core", "status": "pass" },
+    { "id": "core.ent_clean_git", "profile": "core", "status": "pass" },
+    { "id": "core.agent_config", "profile": "core", "status": "pass" },
+    { "id": "wp.env_present", "profile": "wordpress_mcp", "status": "fail" },
+    { "id": "wp.env_complete", "profile": "wordpress_mcp", "status": "fail" },
+    { "id": "wp.mcp_config", "profile": "wordpress_mcp", "status": "pass" },
+    { "id": "wp.rest_auth", "profile": "wordpress_mcp", "status": "fail" },
+    { "id": "wp.mcp_transport", "profile": "wordpress_mcp", "status": "fail" }
+  ]
+}

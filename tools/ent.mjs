@@ -5,6 +5,8 @@ import { getEntRoot, loadManifest, validateManifest } from "./lib/manifest.mjs";
 import { scanBrandingBoundary } from "./lib/branding.mjs";
 import { syncWorkspace, assertEntPristine } from "./lib/sync.mjs";
 import { runSyncTest } from "./lib/test-sync.mjs";
+import { runNegativeAuditTest } from "./lib/test-negative-audit.mjs";
+import { runAudit, writeAuditReport, writeOnboardHtml } from "./lib/audit.mjs";
 
 function usage() {
   console.log(`Ent kit CLI
@@ -106,6 +108,47 @@ async function cmdSync(args) {
   process.exit(0);
 }
 
+async function cmdAudit(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("audit requires --workspace-root");
+    process.exit(1);
+  }
+  const report = runAudit(workspaceRoot);
+  const out = writeAuditReport(workspaceRoot, report);
+  console.log(`OK  audit → ${out}`);
+  console.log(`    pass=${report.summary.pass} fail=${report.summary.fail} skip=${report.summary.skip}`);
+  process.exit(report.summary.fail > 0 ? 1 : 0);
+}
+
+async function cmdRenderOnboard(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("render-onboard requires --workspace-root");
+    process.exit(1);
+  }
+  const auditPath = path.join(workspaceRoot, ".ent", "audit.json");
+  if (!fs.existsSync(auditPath)) {
+    console.error("Missing .ent/audit.json — run audit first");
+    process.exit(1);
+  }
+  const report = JSON.parse(fs.readFileSync(auditPath, "utf8"));
+  const out = writeOnboardHtml(workspaceRoot, report);
+  console.log(`OK  onboard → ${out}`);
+  process.exit(0);
+}
+
+async function cmdTestNegativeAudit(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("test negative-audit requires --workspace-root");
+    process.exit(1);
+  }
+  runNegativeAuditTest(getEntRoot(), workspaceRoot);
+  console.log("OK  test negative-audit");
+  process.exit(0);
+}
+
 async function cmdTestSync(args) {
   const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
   if (!workspaceRoot) {
@@ -140,6 +183,13 @@ async function cmdTest(args) {
       }
       await cmdTestSync(args);
       break;
+    case "negative-audit":
+      if (!args.workspaceRoot) {
+        console.error("test negative-audit requires --workspace-root");
+        process.exit(1);
+      }
+      await cmdTestNegativeAudit(args);
+      break;
     default:
       console.error(`Unknown test suite: ${suite}`);
       process.exit(1);
@@ -163,7 +213,11 @@ async function main() {
       await cmdSync(args);
       break;
     case "audit":
+      await cmdAudit(args);
+      break;
     case "render-onboard":
+      await cmdRenderOnboard(args);
+      break;
     case "scaffold":
       console.error(`Command "${command}" is not implemented yet.`);
       process.exit(1);
