@@ -1,6 +1,7 @@
 version: "1.0.0"
 
 # User-facing onboard.html sections: onboard-checklist.yaml
+# MCP Support groups: mcp-support-catalog.yaml
 
 core_checks:
   - id: core.node

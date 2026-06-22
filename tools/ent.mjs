@@ -14,7 +14,7 @@ import { runOnboardHtmlTest } from "./lib/test-onboard-html.mjs";
 import { runOffboardTest } from "./lib/test-offboard.mjs";
 import { runSiteProfileTest } from "./lib/test-site-profile.mjs";
 import { runWpCommandTest } from "./lib/test-wp-command.mjs";
-import { runOnboard } from "./lib/onboard.mjs";
+import { runOnboard, ONBOARD_SUCCESS_MESSAGE } from "./lib/onboard.mjs";
 import { runOffboard } from "./lib/offboard.mjs";
 import { runWpAbilityExecute, runWpGet } from "./lib/wp-command.mjs";
 import { runAudit, writeAuditReport, writeOnboardHtml, writeStateJson } from "./lib/audit.mjs";
@@ -228,6 +228,11 @@ async function cmdOnboard(args) {
   );
   if (result.statePath) {
     console.log(`OK  state → ${result.statePath}`);
+    console.log("");
+    for (const line of ONBOARD_SUCCESS_MESSAGE) {
+      console.log(`    ✓ ${line}`);
+    }
+    console.log("");
   }
   if (result.logPath) {
     console.log(`OK  log → ${result.logPath}`);

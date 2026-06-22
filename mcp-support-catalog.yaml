@@ -1,0 +1,72 @@
+# MCP Support catalog — declarative; detection in tools/lib/mcp-support.mjs
+mcps:
+  - id: wordpress
+    label: WordPress MCP
+    description: Ent-bundled bridge to the WordPress MCP Adapter on your site (abilities + REST).
+    audit_profile: wordpress_mcp
+    check_labels:
+      wp.env_present: Workspace credentials file present
+      wp.env_complete: WordPress MCP credentials configured
+      wp.mcp_config: MCP server entry in Cursor
+      wp.mcp_launcher: MCP launcher installed in ent/
+      wp.rest_auth: REST API authentication works
+      wp.mcp_transport: MCP transport connected to your site
+      wp.site_identity: MCP URL matches your WordPress site
+      wp.abilities_usable: Discovered MCP abilities executable for service account
+
+  - id: blocks
+    label: Blocks MCP (Gravity Kit)
+    description: Block-level Gutenberg edits via the Block MCP plugin and local MCP server.
+    detection:
+      local_server_name_patterns: [block-mcp, block_mcp, blocks-mcp, gravitykit]
+      local_args_patterns: [block-mcp, gk-block-api, block_mcp]
+      remote_namespace: gk-block-api/v1
+    status_items:
+      - id: blocks_plugin
+        label: Block MCP REST API on your WordPress site
+        requires: remote_namespace
+      - id: blocks_cursor
+        label: Block MCP server in Cursor (.cursor/mcp.json)
+        requires: local_config
+    missing:
+      hint: >-
+        Install the free Block MCP plugin on your site, then connect Cursor from
+        Settings → Block MCP in wp-admin.
+      agent_prompt: >-
+        Help me add Gravity Kit Block MCP to this workspace. Step 1 (human): I will install
+        the Block MCP WordPress plugin from https://www.gravitykit.com/products/block-mcp/
+        and activate it in wp-admin — agents cannot install plugins for me. Step 2: In
+        WordPress go to Settings → Block MCP, choose Cursor, and run the one-line connect
+        command (or paste the generated MCP config into .cursor/mcp.json). Step 3: Reload
+        Cursor and enable the Block MCP server. Then re-run
+        node ent/tools/ent.mjs onboard --workspace-root .
+
+  - id: website_specs
+    label: Website specifications MCP
+    description: Local MCP that exposes this site's requirements, content rules, and specs to agents.
+    detection:
+      local_server_name_patterns: [website-spec, site-spec, specifications, website-specs]
+      local_args_patterns: [website-spec, site-spec, specifications]
+      content_paths:
+        - content/site-specifications.yaml
+        - content/site-specifications.md
+        - content/specifications.md
+        - content/specs
+    status_items:
+      - id: specs_content
+        label: Site specifications documented in content/
+        requires: content_present
+      - id: specs_cursor
+        label: Website specifications MCP in Cursor (.cursor/mcp.json)
+        requires: local_config
+    missing:
+      hint: >-
+        Add site specifications under content/ and register a local MCP server in
+        .cursor/mcp.json that exposes them to Cursor.
+      agent_prompt: >-
+        Help me set up a website specifications MCP for this Ent workspace. First, create or
+        organize site requirements in content/ (for example content/site-specifications.yaml).
+        Then add an MCP server entry to .cursor/mcp.json that exposes those specifications
+        to Cursor (stdio or workspace-local server). Tell me exactly what to add to mcp.json
+        and what files to create. When done, I will re-run
+        node ent/tools/ent.mjs onboard --workspace-root .

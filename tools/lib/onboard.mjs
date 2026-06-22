@@ -14,6 +14,12 @@ export const ONBOARD_WARNINGS = [
   "Audit verifies remote WordPress MCP transport, not the local Cursor stdio process",
 ];
 
+export const ONBOARD_SUCCESS_MESSAGE = [
+  "Onboarding complete — your workspace is connected to Ent.",
+  "Open .ent/onboard.html in your browser to review MCP Support, abilities, and optional add-ons.",
+  "In Cursor: Developer → Reload Window, then enable your site MCP server under Settings → MCP.",
+];
+
 export function probeOnboardEnvironment(workspaceRoot) {
   let node = "unknown";
   try {

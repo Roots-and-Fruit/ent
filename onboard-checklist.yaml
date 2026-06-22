@@ -1,27 +1,17 @@
 # User-facing onboard.html capability sections — edit here, not in onboard-html.mjs
 sections:
-  - id: wordpress_mcp
-    title: WordPress MCP
+  - id: mcp_support
+    title: MCP Support
     source:
-      type: audit_profile
-      profile: wordpress_mcp
-    check_labels:
-      wp.env_present: Workspace credentials file present
-      wp.env_complete: WordPress MCP credentials configured
-      wp.mcp_config: MCP server entry in Cursor
-      wp.mcp_launcher: MCP launcher installed in ent/
-      wp.rest_auth: REST API authentication works
-      wp.mcp_transport: MCP transport connected to your site
-      wp.site_identity: MCP URL matches your WordPress site
-      wp.abilities_usable: Discovered MCP abilities executable for service account
+      type: mcp_support_catalog
 
   - id: registered_abilities
-    title: Registered MCP abilities
+    title: Registered abilities
     source:
       type: site_profile_abilities
 
   - id: extensions
-    title: Extension capabilities
+    title: Extensions
     source:
       type: extensions_file
 

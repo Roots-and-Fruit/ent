@@ -3,6 +3,7 @@ import path from "node:path";
 import YAML from "yaml";
 import { getEntRoot } from "./manifest.mjs";
 import { loadExtensions } from "./extensions.mjs";
+import { resolveMcpSupportSection } from "./mcp-support.mjs";
 
 export function loadOnboardChecklist(entRoot = getEntRoot()) {
   const checklistPath = path.join(entRoot, "onboard-checklist.yaml");
@@ -169,9 +170,16 @@ export function resolveItemSection(section, report, abilities) {
   });
 }
 
-export function resolveChecklistSections(checklist, report, abilities, workspaceRoot = ".") {
+export function resolveChecklistSections(checklist, report, abilities, workspaceRoot = ".", siteProfile = null) {
   return checklist.sections
     .map((section) => {
+      if (section.source?.type === "mcp_support_catalog") {
+        return {
+          id: section.id,
+          title: section.title,
+          items: resolveMcpSupportSection(section, workspaceRoot, report, siteProfile),
+        };
+      }
       if (section.source?.type === "audit_profile") {
         return {
           id: section.id,

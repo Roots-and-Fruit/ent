@@ -23,9 +23,9 @@ If the user asked for **`--logging`**, a trace, or verbose debugging, add `--log
 node ent/tools/ent.mjs onboard --workspace-root . --log --verbose
 ```
 
-3. Open `.ent/onboard.html` — branded welcome page with capability checklist and discovered abilities. Fix **one** failing setup item at a time (see "Complete setup first" when audit is not clean).
-4. Re-run onboard (or `audit`) after each fix until `summary.fail` is 0 and `summary.skip` is 0.
-5. When `--log` was used, tell the user the trace path: `.ent/onboard-log.json` (attach or summarize it when debugging in a new environment).
+3. Fix **one** failing setup item at a time when audit is not clean (see "Complete setup first" on `.ent/onboard.html`).
+4. Re-run onboard after each fix until `summary.fail` is 0 and `summary.skip` is 0.
+5. When `--log` was used, tell the user the trace path: `.ent/onboard-log.json`.
 
 Legacy step-by-step (only if orchestrator is unavailable):
 
@@ -37,33 +37,45 @@ node ent/tools/ent.mjs render-onboard --workspace-root .
 
 `state.json` is written automatically when audit is clean — do not write it manually.
 
-## After onboard passes
+## When onboard completes (`fail=0`, `skip=0`)
 
-Audit verifies remote WordPress MCP transport — not the local Cursor MCP process. Tell the user:
+**This is a product moment.** Reply with a warm, confident, celebratory message (not cheesy). Structure:
 
-1. **Reload Cursor** — run **Developer: Reload Window** so `.cursor/mcp.json` is picked up (MCP stays disabled until reload).
-2. **Enable MCP** — in Cursor Settings → MCP, enable the server named after the site (not the generic `wordpress` placeholder).
-3. **If MCP fails to connect** — ensure bundled MCP is installed (`ent/node_modules/@automattic/mcp-wordpress-remote`). Re-run `node ent/tools/ent.mjs scaffold --workspace-root .` or `npm install --omit=dev` from `ent/`, then audit and fix `wp.mcp_launcher` if it fails.
+1. **Congratulations** — onboarding is complete; their WordPress workspace is connected to Ent.
+2. **What they unlocked** — agents can work with their site using the Ent MCP bridge, site profile, and capability map.
+3. **Open the onboard page in the browser** — tell them explicitly to open **`.ent/onboard.html`** from the workspace root (e.g. right-click → Reveal in File Explorer → double-click, or drag the file into a browser). Say this is their **home base** for MCP Support, abilities, and optional add-ons.
+4. **Cursor housekeeping** — Reload Window (Developer: Reload Window), then enable the WordPress MCP server in Settings → MCP (name matches their site).
+5. **Optional MCPs** — mention that onboard.html lists **Blocks MCP (Gravity Kit)** and **Website specifications MCP**; if those rows are not all green, copy the "Ask your agent to set this up" prompt from that section into a new chat.
+
+Do **not** dump raw audit JSON unless they used `--log` and asked for debugging detail.
+
+Example tone (adapt to their site name):
+
+> Onboarding is complete — you're all set! **{site}** is now wired into Ent, and your agent can start working with your WordPress site from Cursor.
+>
+> Take a minute to open **`.ent/onboard.html`** in your browser. That's your capability dashboard: MCP Support, registered abilities, and what to add next.
+>
+> In Cursor: run **Developer: Reload Window**, then enable your site MCP server under Settings → MCP. Optional add-ons like Block MCP are listed on the onboard page with copy-paste prompts if you want them.
+
+## After onboard passes (technical)
+
+Audit verifies remote WordPress MCP transport — not the local Cursor MCP process.
+
+1. **Reload Cursor** — `Developer: Reload Window` before MCP config is active.
+2. **Enable MCP** — Settings → MCP → enable the server named after the site.
+3. **Bundled launcher** — if MCP fails locally, run `node ent/tools/ent.mjs scaffold --workspace-root .` and fix `wp.mcp_launcher`.
 
 Do not claim MCP tools are ready until the user has reloaded and enabled the server.
 
 ## Site profile and agent routing
 
-After a clean audit, Ent writes `.ent/site-profile.json` with site identity, REST inventory (meta prefixes, namespaces), and abilities with **executable** status from smoke `execute-ability` probes.
+After a clean audit, Ent writes `.ent/site-profile.json` with site identity, REST inventory, and abilities with **executable** status.
 
-- If `wp.site_identity` fails, fix `WP_MCP_URL` in `.env`.
-- If `wp.abilities_usable` fails, some abilities are discovered but blocked for the MCP service account — fix WordPress ability permissions.
-- Agents use **REST** for core WordPress; **execute-ability** only for abilities with `executable: true`.
-- Optional `content/extensions.yaml` adds site-local labels and hints (copy from `content/extensions.yaml.example`).
+- `wp.site_identity` fail → fix `WP_MCP_URL` in `.env`.
+- `wp.abilities_usable` fail → some abilities are discovered but blocked — fix WordPress permissions.
+- Optional `content/extensions.yaml` for site-local capability labels.
 
 Policy: `ent/agent-adapters/shared/site-routing.md`
-
-CLI:
-
-```bash
-node ent/tools/ent.mjs wp get --workspace-root . --path /wp/v2/posts --query "per_page=1&_fields=id,meta"
-node ent/tools/ent.mjs wp ability --workspace-root . --name "namespace/ability" --input '{}'
-```
 
 ## Boundaries
 
