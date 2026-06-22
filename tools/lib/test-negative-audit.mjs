@@ -11,7 +11,7 @@ function stripVolatile(report) {
   }));
 }
 
-export function runNegativeAuditTest(entRoot, workspaceRoot) {
+export async function runNegativeAuditTest(entRoot, workspaceRoot) {
   syncWorkspace(entRoot, workspaceRoot, "cursor");
 
   const envPath = path.join(workspaceRoot, ".env");
@@ -19,7 +19,7 @@ export function runNegativeAuditTest(entRoot, workspaceRoot) {
     fs.unlinkSync(envPath);
   }
 
-  const report = runAudit(workspaceRoot);
+  const report = await runAudit(workspaceRoot, { live: false });
   writeAuditReport(workspaceRoot, report);
   writeOnboardHtml(workspaceRoot, report);
 

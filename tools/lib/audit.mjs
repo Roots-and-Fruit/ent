@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { parseEnvFile } from "./env.mjs";
+import { runWpMcpSmoke } from "./wp-smoke.mjs";
 
 function check(id, profile, status, message, evidence = "") {
   return { id, profile, status, message, evidence };
@@ -16,28 +18,6 @@ function summarize(checks) {
   );
 }
 
-function readEnvFile(envPath) {
-  const env = {};
-  if (!fs.existsSync(envPath)) {
-    return env;
-  }
-  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const idx = trimmed.indexOf("=");
-    if (idx === -1) {
-      continue;
-    }
-    const key = trimmed.slice(0, idx).trim();
-    let value = trimmed.slice(idx + 1).trim();
-    value = value.replace(/^['"]|['"]$/g, "");
-    env[key] = value;
-  }
-  return env;
-}
-
 function entVersion(entDir) {
   try {
     return execSync("git rev-parse --short HEAD", { cwd: entDir, encoding: "utf8" }).trim();
@@ -46,7 +26,8 @@ function entVersion(entDir) {
   }
 }
 
-export function runAudit(workspaceRoot) {
+export async function runAudit(workspaceRoot, options = {}) {
+  const { live = true } = options;
   const checks = [];
   const entDir = path.join(workspaceRoot, "ent");
   const envPath = path.join(workspaceRoot, ".env");
@@ -97,7 +78,7 @@ export function runAudit(workspaceRoot) {
     checks.push(check("core.agent_config", "core", "fail", "Run ent sync to create .cursor/mcp.json"));
   }
 
-  const env = readEnvFile(envPath);
+  const env = parseEnvFile(envPath);
 
   // wp.env_present
   if (fs.existsSync(envPath)) {
@@ -128,23 +109,31 @@ export function runAudit(workspaceRoot) {
     checks.push(check("wp.mcp_config", "wordpress_mcp", "fail", "Missing .cursor/mcp.json"));
   }
 
-  // wp.rest_auth & wp.mcp_transport — live gates deferred in Phase 3
-  if (url && user && pass) {
+  if (url && user && pass && live) {
+    const smoke = await runWpMcpSmoke({ workspaceRoot, url, username: user, password: pass });
+    const restPass = smoke.stage !== "rest" && smoke.stage !== "env";
     checks.push(
       check(
         "wp.rest_auth",
         "wordpress_mcp",
-        "skip",
-        "Live REST check deferred",
-        "live_gate_deferred"
-      ),
+        restPass ? "pass" : "fail",
+        restPass ? "REST /users/me OK" : smoke.message,
+        smoke.stage
+      )
+    );
+    checks.push(
       check(
         "wp.mcp_transport",
         "wordpress_mcp",
-        "skip",
-        "Live MCP transport deferred",
-        "live_gate_deferred"
+        smoke.ok ? "pass" : "fail",
+        smoke.ok ? `MCP transport OK (${smoke.toolCount} tools)` : smoke.message,
+        smoke.stage
       )
+    );
+  } else if (url && user && pass) {
+    checks.push(
+      check("wp.rest_auth", "wordpress_mcp", "skip", "Live REST check deferred", "live_gate_deferred"),
+      check("wp.mcp_transport", "wordpress_mcp", "skip", "Live MCP transport deferred", "live_gate_deferred")
     );
   } else {
     checks.push(

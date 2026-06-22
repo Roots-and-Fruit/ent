@@ -6,6 +6,8 @@ import { scanBrandingBoundary } from "./lib/branding.mjs";
 import { syncWorkspace, assertEntPristine } from "./lib/sync.mjs";
 import { runSyncTest } from "./lib/test-sync.mjs";
 import { runNegativeAuditTest } from "./lib/test-negative-audit.mjs";
+import { scaffoldWorkspace } from "./lib/scaffold.mjs";
+import { runScaffoldTest } from "./lib/test-scaffold.mjs";
 import { runAudit, writeAuditReport, writeOnboardHtml } from "./lib/audit.mjs";
 
 function usage() {
@@ -114,7 +116,7 @@ async function cmdAudit(args) {
     console.error("audit requires --workspace-root");
     process.exit(1);
   }
-  const report = runAudit(workspaceRoot);
+  const report = await runAudit(workspaceRoot);
   const out = writeAuditReport(workspaceRoot, report);
   console.log(`OK  audit → ${out}`);
   console.log(`    pass=${report.summary.pass} fail=${report.summary.fail} skip=${report.summary.skip}`);
@@ -138,13 +140,35 @@ async function cmdRenderOnboard(args) {
   process.exit(0);
 }
 
+async function cmdScaffold(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("scaffold requires --workspace-root");
+    process.exit(1);
+  }
+  scaffoldWorkspace(getEntRoot(), workspaceRoot);
+  console.log(`OK  scaffold workspace=${workspaceRoot}`);
+  process.exit(0);
+}
+
+async function cmdTestScaffold(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("test scaffold requires --workspace-root");
+    process.exit(1);
+  }
+  runScaffoldTest(getEntRoot(), workspaceRoot);
+  console.log("OK  test scaffold");
+  process.exit(0);
+}
+
 async function cmdTestNegativeAudit(args) {
   const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
   if (!workspaceRoot) {
     console.error("test negative-audit requires --workspace-root");
     process.exit(1);
   }
-  runNegativeAuditTest(getEntRoot(), workspaceRoot);
+  await runNegativeAuditTest(getEntRoot(), workspaceRoot);
   console.log("OK  test negative-audit");
   process.exit(0);
 }
@@ -190,6 +214,13 @@ async function cmdTest(args) {
       }
       await cmdTestNegativeAudit(args);
       break;
+    case "scaffold":
+      if (!args.workspaceRoot) {
+        console.error("test scaffold requires --workspace-root");
+        process.exit(1);
+      }
+      await cmdTestScaffold(args);
+      break;
     default:
       console.error(`Unknown test suite: ${suite}`);
       process.exit(1);
@@ -219,8 +250,7 @@ async function main() {
       await cmdRenderOnboard(args);
       break;
     case "scaffold":
-      console.error(`Command "${command}" is not implemented yet.`);
-      process.exit(1);
+      await cmdScaffold(args);
       break;
     case "test":
       await cmdTest(args);
