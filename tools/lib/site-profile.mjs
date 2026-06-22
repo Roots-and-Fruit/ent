@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { parseEnvFile } from "./env.mjs";
+import { enrichAbilitiesWithSmoke, countAbilitySummary } from "./ability-smoke.mjs";
+import { probeRestInventory } from "./wp-rest-probe.mjs";
 import { fetchWpMcpAbilities } from "./wp-smoke.mjs";
 
 export const SITE_PROFILE_FILE = "site-profile.json";
@@ -72,10 +74,13 @@ async function buildSiteProfileFromSmoke(workspaceRoot, options) {
       identity_ok: false,
       rest_ok: smoke ? smoke.stage !== "rest" && smoke.stage !== "env" : false,
       mcp_ok: Boolean(smoke?.ok && (smoke.toolCount ?? 0) > 0),
+      abilities_usable: true,
     },
   };
 
   if (!url) {
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+    profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }
 
@@ -106,6 +111,48 @@ async function buildSiteProfileFromSmoke(workspaceRoot, options) {
     }
   }
 
+  return finalizeSiteProfile(profile, {
+    siteRoot,
+    username,
+    password,
+    url,
+    smokeOk: Boolean(smoke?.ok),
+  });
+}
+
+async function finalizeSiteProfile(profile, { siteRoot, username, password, url, smokeOk }) {
+  if (!url || !username || !password) {
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+    profile.abilities_summary = countAbilitySummary(profile.abilities);
+    return profile;
+  }
+
+  if (profile.checks.rest_ok) {
+    profile.rest = await probeRestInventory({ siteRoot, username, password });
+  } else {
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+  }
+
+  if (smokeOk && profile.abilities.length > 0) {
+    profile.abilities = await enrichAbilitiesWithSmoke(
+      { url, username, password },
+      profile.abilities
+    );
+  } else if (profile.abilities.length > 0) {
+    profile.abilities = profile.abilities.map((ability) => ({
+      ...ability,
+      discovered: true,
+      executable: null,
+      error_code: null,
+      error: null,
+    }));
+  }
+
+  profile.abilities_summary = countAbilitySummary(profile.abilities);
+  profile.checks.abilities_usable =
+    profile.abilities.length === 0 ||
+    profile.abilities.every((ability) => ability.executable !== false);
+
   return profile;
 }
 
@@ -135,10 +182,13 @@ export async function probeSiteProfile(workspaceRoot, options = {}) {
       identity_ok: false,
       rest_ok: false,
       mcp_ok: false,
+      abilities_usable: true,
     },
   };
 
   if (!url || !username || !password) {
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+    profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }
 
@@ -178,7 +228,13 @@ export async function probeSiteProfile(workspaceRoot, options = {}) {
     }
   }
 
-  return profile;
+  return finalizeSiteProfile(profile, {
+    siteRoot,
+    username,
+    password,
+    url,
+    smokeOk: profile.checks.mcp_ok,
+  });
 }
 
 export function readSiteProfile(workspaceRoot) {
@@ -218,10 +274,28 @@ export function abilityHaystack(abilities) {
     .join(" ");
 }
 
-export function profileHasAbilityPattern(profile, patterns) {
-  const haystack = abilityHaystack(profile?.abilities);
+export function profileHasAbilityPattern(profile, patterns, { executableOnly = false } = {}) {
+  const abilities = (profile?.abilities ?? []).filter((ability) =>
+    executableOnly ? ability.executable === true : true
+  );
+  const haystack = abilityHaystack(abilities);
   if (!haystack) {
     return false;
   }
   return patterns.some((p) => haystack.includes(String(p).toLowerCase()));
+}
+
+export function listExecutableAbilityNames(profile) {
+  return (profile?.abilities ?? [])
+    .filter((ability) => ability.executable === true)
+    .map((ability) => ability.name);
+}
+
+export function isAbilityAllowed(profile, abilityName) {
+  const name = String(abilityName ?? "").trim();
+  if (!name) {
+    return false;
+  }
+  const match = (profile?.abilities ?? []).find((ability) => ability.name === name);
+  return Boolean(match && match.executable === true);
 }

@@ -30,10 +30,15 @@ profiles:
         description: MCP initialize and tools/list succeed
       - id: wp.site_identity
         description: WP_MCP_URL host matches the WordPress site from /wp-json
+      - id: wp.abilities_usable
+        description: Discovered MCP abilities are executable for the service account (smoke execute-ability)
 
 workspace_scaffold:
   - path: content/
     description: Mutable site content and operational artifacts
+  - path: content/extensions.yaml.example
+    source: content/extensions.yaml.example
+    description: Optional site-local extension labels and agent hints (copy to extensions.yaml)
   - path: .ent/
     description: Ent workspace state, audit output, onboard checklist
   - path: .env

@@ -59,7 +59,7 @@ export async function runNegativeAuditTest(entRoot, workspaceRoot) {
       throw new Error(`onboard.html audit data missing fail id ${c.id}`);
     }
   }
-  if (!html.includes("Manage / edit content")) {
-    throw new Error("onboard.html missing capability sections");
+  if (!html.includes("Registered MCP abilities") && !html.includes("MCP abilities")) {
+    throw new Error("onboard.html missing ability sections");
   }
 }

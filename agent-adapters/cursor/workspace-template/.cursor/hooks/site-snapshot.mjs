@@ -4,6 +4,23 @@ function abilityHaystack(abilities) {
     .join(" ");
 }
 
+function extractAbilityName(toolInput) {
+  const input = toolInput ?? {};
+  const candidates = [
+    input.ability_name,
+    input.ability,
+    input.name,
+    input.arguments?.ability_name,
+    input.parameters?.ability_name,
+  ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
 export function formatSiteProfileBlock(profile) {
   if (!profile) {
     return [
@@ -13,6 +30,7 @@ export function formatSiteProfileBlock(profile) {
     ].join("\n");
   }
 
+  const summary = profile.abilities_summary ?? {};
   const lines = [
     "## Site profile",
     "",
@@ -21,27 +39,29 @@ export function formatSiteProfileBlock(profile) {
     `- **Identity OK:** ${profile.checks?.identity_ok ? "yes" : "no"}`,
     `- **REST auth:** ${profile.checks?.rest_ok ? "yes" : "no"}`,
     `- **MCP adapter:** ${profile.checks?.mcp_ok ? "yes" : "no"} (${profile.mcp?.tool_count ?? 0} tools)`,
-    `- **MCP server (Cursor):** ${profile.mcp?.server_name ?? "unknown"}`,
-    `- **Public abilities:** ${profile.abilities?.length ?? 0}`,
+    `- **MCP server (Cursor):** ${profile.mcp?.server_name ?? "unknown"} — use this server only for this workspace`,
+    `- **Abilities:** ${summary.discovered ?? 0} discovered, ${summary.executable ?? 0} executable, ${summary.blocked ?? 0} blocked`,
   ];
 
   if (profile.abilities?.length) {
-    const names = profile.abilities
+    const executable = profile.abilities
+      .filter((a) => a.executable === true)
       .slice(0, 12)
       .map((a) => a.name)
       .join(", ");
-    const more = profile.abilities.length > 12 ? ` (+${profile.abilities.length - 12} more)` : "";
-    lines.push(`- **Ability names:** ${names}${more}`);
+    if (executable) {
+      lines.push(`- **Executable ability names:** ${executable}`);
+    }
   }
 
-  const haystack = abilityHaystack(profile.abilities);
-  lines.push(
-    `- **Note:** ${
-      /yoast|seo-score|rank-math|seo/.test(haystack)
-        ? "SEO/Yoast-like abilities present"
-        : "no SEO/Yoast abilities in profile"
-    }`
-  );
+  const rest = profile.rest ?? {};
+  if (rest.meta_prefixes?.length) {
+    lines.push(`- **REST meta prefixes (sample):** ${rest.meta_prefixes.join(", ")}`);
+  }
+  if (rest.namespaces?.length) {
+    lines.push(`- **REST namespaces:** ${rest.namespaces.slice(0, 8).join(", ")}${rest.namespaces.length > 8 ? " …" : ""}`);
+  }
+
   lines.push(`- **Probed:** ${profile.probed_at ?? "unknown"}`);
 
   return lines.join("\n");
@@ -51,24 +71,40 @@ export function formatRoutingSummary() {
   return [
     "## Agent routing (Ent)",
     "",
-    "- **REST** for core WP resources when no listed MCP ability applies (`checks.rest_ok` required).",
-    "- **MCP execute-ability** only for abilities in site profile (`checks.mcp_ok` required).",
-    "- **Do not** use MCP for plugin/SEO/analytics tasks unless a matching ability is listed.",
+    "- **REST** (`/wp-json/wp/v2/...`) for core WordPress when no executable MCP ability applies (`checks.rest_ok` required).",
+    "- **MCP execute-ability** only for abilities with `executable: true` in site profile (`checks.mcp_ok` required).",
+    "- **Extension tasks** need a matching executable ability — do not brute-force plugin REST namespaces or wp-admin.",
+    "- After one REST sample read, stop if the profile shows no executable ability for the task.",
+    "- CLI: `node ent/tools/ent.mjs wp get --path /wp/v2/posts --query 'per_page=1'`",
     "- Full policy: `ent/agent-adapters/shared/site-routing.md`",
   ].join("\n");
 }
 
-function profileHasAbilityPattern(profile, patterns) {
-  const haystack = abilityHaystack(profile?.abilities);
-  if (!haystack) {
-    return false;
+export function formatExtensionHintsBlock(extensionsDoc) {
+  const extensions = extensionsDoc?.extensions ?? [];
+  if (extensions.length === 0) {
+    return "";
   }
-  return patterns.some((p) => haystack.includes(String(p).toLowerCase()));
+
+  const lines = ["## Extension hints (site-local)", ""];
+  for (const ext of extensions) {
+    lines.push(`### ${ext.label ?? ext.id}`);
+    if (ext.ability_patterns?.length) {
+      lines.push(`- Patterns: ${ext.ability_patterns.join(", ")}`);
+    }
+    for (const hint of ext.agent_hints ?? []) {
+      lines.push(`- ${hint}`);
+    }
+    for (const hint of ext.rest_hints ?? []) {
+      lines.push(`- REST: ${hint}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n").trim();
 }
 
 export function buildMcpGuardMessage(profile, toolName = "", toolInput = {}) {
   const base = "Ent MCP: follow site profile and routing policy in session preload.";
-  const inputBlob = JSON.stringify(toolInput ?? {}).toLowerCase();
 
   if (!profile) {
     return `${base} No site profile — run ent audit before MCP tasks.`;
@@ -83,15 +119,22 @@ export function buildMcpGuardMessage(profile, toolName = "", toolInput = {}) {
   }
 
   const tool = String(toolName).toLowerCase();
-  const pluginTask = /yoast|seo|analytics|ga4|plausible|search.?console|plugin|theme|rank.?math/i.test(
-    `${tool} ${inputBlob}`
-  );
-
   if (/execute-ability|execute_ability/.test(tool)) {
-    if (pluginTask && !profileHasAbilityPattern(profile, ["yoast", "seo", "analytics", "search-console", "gsc"])) {
-      return `${base} This site has no matching ability in profile for that plugin task — do not guess.`;
+    const abilityName = extractAbilityName(toolInput);
+    if (abilityName) {
+      const match = (profile.abilities ?? []).find((a) => a.name === abilityName);
+      if (!match) {
+        return `${base} Ability "${abilityName}" is not listed in .ent/site-profile.json — do not execute.`;
+      }
+      if (match.executable === false) {
+        return `${base} Ability "${abilityName}" is discovered but blocked (${match.error_code ?? "not executable"}).`;
+      }
     }
-    return `${base} Only execute abilities listed in .ent/site-profile.json.`;
+    return `${base} Only execute abilities marked executable in .ent/site-profile.json.`;
+  }
+
+  if (profile.mcp?.server_name) {
+    return `${base} Use MCP server "${profile.mcp.server_name}" for this workspace.`;
   }
 
   return base;

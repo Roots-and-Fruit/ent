@@ -1,7 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
-import { formatRoutingSummary, formatSiteProfileBlock } from "./site-snapshot.mjs";
+import {
+  formatExtensionHintsBlock,
+  formatRoutingSummary,
+  formatSiteProfileBlock,
+} from "./site-snapshot.mjs";
+
+const require = createRequire(import.meta.url);
 
 const STATIC_REL = path.join("agent-adapters", "shared", "preload", "ent-session-context.md");
 const CONTEXT_FILE = path.join(".ent", "session-context.md");
@@ -210,9 +217,29 @@ function readStaticBlock(entCoreDir) {
   return fs.readFileSync(staticPath, "utf8").trim();
 }
 
+function loadExtensionsDoc(projectDir) {
+  for (const rel of ["content/extensions.yaml", ".ent/extensions.yaml"]) {
+    const filePath = path.join(projectDir, rel);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    try {
+      const entYaml = path.join(projectDir, "ent", "node_modules", "yaml");
+      const YAML = require(fs.existsSync(entYaml) ? entYaml : "yaml");
+      const doc = YAML.parse(fs.readFileSync(filePath, "utf8"));
+      return { extensions: doc?.extensions ?? [] };
+    } catch {
+      // try next path
+    }
+  }
+  return { extensions: [] };
+}
+
 function siteProfileLines(projectDir) {
   const profile = readJsonFile(path.join(projectDir, ".ent", "site-profile.json"));
-  return [formatSiteProfileBlock(profile), formatRoutingSummary()];
+  const extensionsDoc = loadExtensionsDoc(projectDir);
+  const extensionBlock = formatExtensionHintsBlock(extensionsDoc);
+  return [formatSiteProfileBlock(profile), formatRoutingSummary(), extensionBlock].filter(Boolean);
 }
 
 function workStartBlock(openMode, kitRoot, consumerRoot, preloadRoot) {

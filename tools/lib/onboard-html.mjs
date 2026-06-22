@@ -85,15 +85,33 @@ function setupAlerts(report) {
 
 function renderAbilitiesList(abilities) {
   if (abilities.length === 0) {
-    return `<p class="muted">No public abilities were returned yet. Ask your agent to run <code>discover-abilities</code> after you register abilities with <code>meta.mcp.public</code>.</p>`;
+    return `<p class="muted">No public abilities were returned yet. Register abilities with <code>meta.mcp.public</code> on your site, then re-run onboard.</p>`;
   }
-  const rows = abilities
-    .map(
-      (a) =>
-        `<article class="ability"><h3>${escapeHtml(a.label || a.name)}</h3><p class="ability-name"><code>${escapeHtml(a.name)}</code></p><p>${escapeHtml(a.description || "No description provided.")}</p></article>`
-    )
+
+  const usable = abilities.filter((a) => a.executable === true);
+  const blocked = abilities.filter((a) => a.executable === false);
+  const unknown = abilities.filter((a) => a.executable == null);
+
+  const renderGroup = (title, list, badge) => {
+    if (list.length === 0) {
+      return "";
+    }
+    const rows = list
+      .map((a) => {
+        const err = a.error ? `<p class="hint">${escapeHtml(a.error)}</p>` : "";
+        return `<article class="ability"><h3>${escapeHtml(a.label || a.name)} <span class="badge">${badge}</span></h3><p class="ability-name"><code>${escapeHtml(a.name)}</code></p><p>${escapeHtml(a.description || "No description provided.")}</p>${err}</article>`;
+      })
+      .join("\n");
+    return `<h3 class="ability-group">${escapeHtml(title)}</h3><div class="ability-grid">${rows}</div>`;
+  };
+
+  return [
+    renderGroup("Executable", usable, "ok"),
+    renderGroup("Discovered but blocked", blocked, "blocked"),
+    renderGroup("Status unknown", unknown, "unknown"),
+  ]
+    .filter(Boolean)
     .join("\n");
-  return `<div class="ability-grid">${rows}</div>`;
 }
 
 function renderChecklistSections(sections) {
@@ -142,7 +160,7 @@ export async function buildOnboardPageModel(workspaceRoot, report) {
     siteTitle,
     mcpServerName,
     abilities,
-    sections: resolveChecklistSections(checklist, report, abilities),
+    sections: resolveChecklistSections(checklist, report, abilities, workspaceRoot),
     ready: report.summary.fail === 0 && report.summary.skip === 0,
   };
 }
@@ -248,6 +266,8 @@ export function renderOnboardHtml(model) {
       background: var(--ent-bg);
     }
     .ability h3 { margin: 0 0 0.25rem; font-size: 1rem; color: var(--ent-accent-deep); }
+    .ability-group { font-size: 0.95rem; margin: 1rem 0 0.5rem; color: var(--ent-muted); }
+    .badge { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ent-muted); }
     .ability-name { margin: 0 0 0.35rem; font-size: 0.85rem; }
     .muted { color: var(--ent-muted); }
     code {
@@ -306,8 +326,8 @@ export function renderOnboardHtml(model) {
     ${renderChecklistSections(sections)}
 
     <section class="card">
-      <h2>All abilities</h2>
-      <p class="lede">Abilities your agent can discover on <strong>${escapeHtml(siteTitle)}</strong> via MCP server <code>${escapeHtml(mcpServerName)}</code>.</p>
+      <h2>MCP abilities</h2>
+      <p class="lede">Discovered on <strong>${escapeHtml(siteTitle)}</strong> via MCP server <code>${escapeHtml(mcpServerName)}</code>. Only <strong>executable</strong> abilities are usable by agents.</p>
       ${renderAbilitiesList(abilities)}
     </section>
 

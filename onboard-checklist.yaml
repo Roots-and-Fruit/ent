@@ -13,39 +13,17 @@ sections:
       wp.rest_auth: REST API authentication works
       wp.mcp_transport: MCP transport connected to your site
       wp.site_identity: MCP URL matches your WordPress site
+      wp.abilities_usable: Discovered MCP abilities executable for service account
 
-  - id: content
-    title: Manage / edit content
-    items:
-      - id: read
-        label: Read posts and pages
-        hint: >-
-          Use REST for core reads when MCP abilities are not registered.
-          Re-run onboard after exposing read abilities on your site.
-        pass_when:
-          any_ability_pattern: [post, page, content, get-site, read]
-      - id: edit
-        label: Edit posts and pages
-        hint: >-
-          Register WordPress abilities with meta.mcp.public for create/update actions,
-          or ask your agent in Cursor once those abilities exist.
-          See the WordPress MCP Adapter ability guide.
-        hint_link: https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/creating-abilities.md
-        pass_when:
-          any_ability_pattern: [create, update, edit, write, publish, delete]
+  - id: registered_abilities
+    title: Registered MCP abilities
+    source:
+      type: site_profile_abilities
 
-  - id: plugins
-    title: Manage plugin & theme updates
-    items:
-      - id: list
-        label: See and list plugins and themes
-        pass_when:
-          any_ability_pattern: [plugin, theme, extension]
-      - id: manage
-        label: Manage plugin and theme updates
-        hint: Expose plugin and theme management abilities on your site, then re-run onboard. Until then, use wp-admin.
-        pass_when:
-          any_ability_pattern: [update-plugin, install-plugin, upgrade, activate]
+  - id: extensions
+    title: Extension capabilities
+    source:
+      type: extensions_file
 
   - id: security
     title: Security
@@ -54,29 +32,3 @@ sections:
         label: Run regular security audits and fixes
         upcoming: true
         hint: Coming soon — Ent will help schedule security audits and apply fixes from Cursor.
-
-  - id: analytics
-    title: Analytics
-    items:
-      - id: web
-        label: See web analytics (GA4, Plausible, etc.)
-        hint: Register analytics abilities with the MCP Adapter, or ask your developer to expose read-only reporting abilities.
-        pass_when:
-          any_ability_pattern: [analytics, ga4, plausible]
-      - id: search_console
-        label: Search Console
-        hint: Register Search Console abilities with the MCP Adapter when available on your site.
-        pass_when:
-          any_ability_pattern: [search-console, searchconsole, gsc]
-
-  - id: seo
-    title: SEO & metadata
-    items:
-      - id: yoast
-        label: Read SEO scores (Yoast, Rank Math, etc.)
-        hint: >-
-          SEO plugins need a public MCP ability on your site.
-          Agents cannot read Yoast scores via REST or generic MCP without that ability.
-        hint_link: https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/creating-abilities.md
-        pass_when:
-          any_ability_pattern: [yoast, seo, seo-score, rank-math, rankmath]

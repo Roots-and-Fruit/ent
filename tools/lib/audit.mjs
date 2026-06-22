@@ -230,17 +230,35 @@ export async function runAudit(workspaceRoot, options = {}) {
         siteProfile.site.host ?? ""
       )
     );
+
+    const blocked = (siteProfile.abilities ?? []).filter((a) => a.executable === false);
+    const abilitiesUsable = siteProfile.checks.abilities_usable !== false;
+    checks.push(
+      check(
+        "wp.abilities_usable",
+        "wordpress_mcp",
+        abilitiesUsable ? "pass" : "fail",
+        abilitiesUsable
+          ? siteProfile.abilities_summary?.discovered
+            ? `All ${siteProfile.abilities_summary.discovered} discovered abilities executable (${siteProfile.abilities_summary.executable} ok)`
+            : "No public abilities registered"
+          : `${blocked.length} ability(ies) discovered but not executable for MCP user`,
+        blocked.map((a) => a.name).join(", ")
+      )
+    );
   } else if (url && user && pass) {
     checks.push(
       check("wp.rest_auth", "wordpress_mcp", "skip", "Live REST check deferred", "live_gate_deferred"),
       check("wp.mcp_transport", "wordpress_mcp", "skip", "Live MCP transport deferred", "live_gate_deferred"),
-      check("wp.site_identity", "wordpress_mcp", "skip", "Live site identity check deferred", "live_gate_deferred")
+      check("wp.site_identity", "wordpress_mcp", "skip", "Live site identity check deferred", "live_gate_deferred"),
+      check("wp.abilities_usable", "wordpress_mcp", "skip", "Live ability execute check deferred", "live_gate_deferred")
     );
   } else {
     checks.push(
       check("wp.rest_auth", "wordpress_mcp", "fail", "Complete .env before live REST check"),
       check("wp.mcp_transport", "wordpress_mcp", "fail", "Complete .env before live MCP check"),
-      check("wp.site_identity", "wordpress_mcp", "fail", "Complete .env before site identity check")
+      check("wp.site_identity", "wordpress_mcp", "fail", "Complete .env before site identity check"),
+      check("wp.abilities_usable", "wordpress_mcp", "fail", "Complete .env before ability execute check")
     );
   }
 

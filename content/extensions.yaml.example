@@ -1,0 +1,17 @@
+# Optional site-local extension map — copy to content/extensions.yaml
+# Ent merges these hints into session preload; the kit stays plugin-agnostic.
+extensions:
+  - id: seo_scores
+    label: SEO scores
+    ability_patterns: [seo, yoast, rank-math]
+    hint: Register a public MCP ability for SEO read access on your site.
+    hint_link: https://github.com/WordPress/mcp-adapter/blob/trunk/docs/guides/creating-abilities.md
+    agent_hints:
+      - If a prerequisite meta field (e.g. focus keyphrase) is empty, the score may be NA — do not brute-force plugin REST endpoints.
+    rest_hints:
+      - Check post meta keys listed in site-profile.json rest.post_meta_keys_sample before calling plugin namespaces.
+
+  - id: analytics
+    label: Web analytics
+    ability_patterns: [analytics, ga4, plausible]
+    hint: Expose read-only analytics abilities via the MCP Adapter.

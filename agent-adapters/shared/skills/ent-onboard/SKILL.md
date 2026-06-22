@@ -49,13 +49,21 @@ Do not claim MCP tools are ready until the user has reloaded and enabled the ser
 
 ## Site profile and agent routing
 
-After a clean audit, Ent writes `.ent/site-profile.json` (site host, MCP adapter status, public abilities) and injects routing rules into session preload.
+After a clean audit, Ent writes `.ent/site-profile.json` with site identity, REST inventory (meta prefixes, namespaces), and abilities with **executable** status from smoke `execute-ability` probes.
 
-- If `wp.site_identity` fails, `WP_MCP_URL` points at a different host than the live site — fix `.env` before continuing.
-- Agents should use **REST** for core WP reads when no MCP ability exists; **execute-ability** only for abilities listed in the profile.
-- SEO/Yoast and plugin tasks require matching abilities — REST auth alone does not enable them.
+- If `wp.site_identity` fails, fix `WP_MCP_URL` in `.env`.
+- If `wp.abilities_usable` fails, some abilities are discovered but blocked for the MCP service account — fix WordPress ability permissions.
+- Agents use **REST** for core WordPress; **execute-ability** only for abilities with `executable: true`.
+- Optional `content/extensions.yaml` adds site-local labels and hints (copy from `content/extensions.yaml.example`).
 
-Policy reference: `ent/agent-adapters/shared/site-routing.md`
+Policy: `ent/agent-adapters/shared/site-routing.md`
+
+CLI:
+
+```bash
+node ent/tools/ent.mjs wp get --workspace-root . --path /wp/v2/posts --query "per_page=1&_fields=id,meta"
+node ent/tools/ent.mjs wp ability --workspace-root . --name "namespace/ability" --input '{}'
+```
 
 ## Boundaries
 

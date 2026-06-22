@@ -13,8 +13,10 @@ import { runOnboardLogTest } from "./lib/test-onboard.mjs";
 import { runOnboardHtmlTest } from "./lib/test-onboard-html.mjs";
 import { runOffboardTest } from "./lib/test-offboard.mjs";
 import { runSiteProfileTest } from "./lib/test-site-profile.mjs";
+import { runWpCommandTest } from "./lib/test-wp-command.mjs";
 import { runOnboard } from "./lib/onboard.mjs";
 import { runOffboard } from "./lib/offboard.mjs";
+import { runWpAbilityExecute, runWpGet } from "./lib/wp-command.mjs";
 import { runAudit, writeAuditReport, writeOnboardHtml, writeStateJson } from "./lib/audit.mjs";
 
 function usage() {
@@ -28,9 +30,11 @@ Usage:
   node tools/ent.mjs offboard --workspace-root <path> [--dry-run] [--clear-audit] [--clear-env] [--remove-projected] [--remove-kit] [--keep-mcp] [--keep-state]
   node tools/ent.mjs render-onboard --workspace-root <path>
   node tools/ent.mjs scaffold --workspace-root <path>
+  node tools/ent.mjs wp get --workspace-root <path> [--path /wp/v2/posts] [--query "per_page=1"]
+  node tools/ent.mjs wp ability --workspace-root <path> --name <ability-name> [--input '{}']
   node tools/ent.mjs test <suite> --workspace-root <path>
 
-Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, offboard, site-profile, sync, negative-audit, scaffold
+Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, offboard, site-profile, wp-command, sync, negative-audit, scaffold
 `);
 }
 
@@ -67,6 +71,59 @@ async function cmdValidateManifest() {
   console.log(`    core_checks: ${manifest.core_checks.length}`);
   console.log(`    profiles: ${Object.keys(manifest.profiles).join(", ")}`);
   process.exit(0);
+}
+
+async function cmdScaffold(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("scaffold requires --workspace-root");
+    process.exit(1);
+  }
+  scaffoldWorkspace(getEntRoot(), workspaceRoot);
+  console.log(`OK  scaffold workspace=${workspaceRoot}`);
+  process.exit(0);
+}
+
+async function cmdWp(args) {
+  const sub = args._[1];
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("wp requires --workspace-root");
+    process.exit(1);
+  }
+
+  if (sub === "get") {
+    try {
+      const result = await runWpGet(workspaceRoot, {
+        path: args.path,
+        query: args.query,
+        envFile: args["env-file"],
+      });
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(result.ok ? 0 : 1);
+    } catch (err) {
+      console.error(err.message ?? String(err));
+      process.exit(1);
+    }
+  }
+
+  if (sub === "ability") {
+    try {
+      const result = await runWpAbilityExecute(workspaceRoot, {
+        name: args.name,
+        input: args.input,
+        envFile: args["env-file"],
+      });
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(0);
+    } catch (err) {
+      console.error(err.message ?? String(err));
+      process.exit(1);
+    }
+  }
+
+  console.error("wp requires subcommand: get | ability");
+  process.exit(1);
 }
 
 async function cmdTestBrandingBoundary() {
@@ -202,17 +259,6 @@ async function cmdOffboard(args) {
   process.exit(0);
 }
 
-async function cmdScaffold(args) {
-  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
-  if (!workspaceRoot) {
-    console.error("scaffold requires --workspace-root");
-    process.exit(1);
-  }
-  scaffoldWorkspace(getEntRoot(), workspaceRoot);
-  console.log(`OK  scaffold workspace=${workspaceRoot}`);
-  process.exit(0);
-}
-
 async function cmdTestScaffold(args) {
   const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
   if (!workspaceRoot) {
@@ -272,6 +318,12 @@ async function cmdTestOnboard(args) {
   process.exit(0);
 }
 
+async function cmdTestWpCommand() {
+  await runWpCommandTest();
+  console.log("OK  test wp-command");
+  process.exit(0);
+}
+
 async function cmdTestSiteProfile(args) {
   const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
   await runSiteProfileTest(getEntRoot(), workspaceRoot || undefined);
@@ -325,6 +377,9 @@ async function cmdTest(args) {
       break;
     case "site-profile":
       await cmdTestSiteProfile(args);
+      break;
+    case "wp-command":
+      await cmdTestWpCommand();
       break;
     case "sync":
       if (!args.workspaceRoot) {
@@ -383,6 +438,9 @@ async function main() {
       break;
     case "scaffold":
       await cmdScaffold(args);
+      break;
+    case "wp":
+      await cmdWp(args);
       break;
     case "test":
       await cmdTest(args);

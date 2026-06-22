@@ -3,11 +3,14 @@ import path from "node:path";
 import os from "node:os";
 import {
   envFingerprint,
+  isAbilityAllowed,
   profileHasAbilityPattern,
   readSiteProfile,
   writeSiteProfile,
 } from "./site-profile.mjs";
 import { formatRoutingSummary, formatSiteProfileBlock } from "./site-routing.mjs";
+import { loadExtensions } from "./extensions.mjs";
+import { countAbilitySummary } from "./ability-smoke.mjs";
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "ent-site-profile-"));
@@ -30,8 +33,24 @@ export async function runSiteProfileTest(entRoot, workspaceRoot) {
       tool_count: 2,
       tools: ["discover-abilities", "execute-ability"],
     },
-    abilities: [{ name: "get-posts", label: "Get posts", description: "Read posts" }],
-    checks: { identity_ok: true, rest_ok: true, mcp_ok: true },
+    abilities: [
+      { name: "get-posts", label: "Get posts", description: "Read posts", executable: true },
+      {
+        name: "seo/get-score",
+        label: "SEO",
+        description: "SEO score",
+        executable: false,
+        error_code: "permission_denied",
+      },
+    ],
+    abilities_summary: { discovered: 2, executable: 1, blocked: 1, unknown: 0 },
+    rest: {
+      post_meta_keys_sample: ["_yoast_wpseo_focuskw"],
+      meta_prefixes: ["_yoast_"],
+      namespaces: ["yoast/v1"],
+      namespace_probes: [],
+    },
+    checks: { identity_ok: true, rest_ok: true, mcp_ok: true, abilities_usable: false },
   };
 
   writeSiteProfile(root, profile);
@@ -41,12 +60,12 @@ export async function runSiteProfileTest(entRoot, workspaceRoot) {
   }
 
   const block = formatSiteProfileBlock(profile);
-  if (!block.includes("example.com") || !block.includes("Identity OK:** yes")) {
+  if (!block.includes("example.com") || !block.includes("1 executable")) {
     throw new Error("formatSiteProfileBlock missing expected fields");
   }
 
   const routing = formatRoutingSummary();
-  if (!routing.includes("execute-ability")) {
+  if (!routing.includes("executable")) {
     throw new Error("formatRoutingSummary missing routing rules");
   }
 
@@ -54,13 +73,36 @@ export async function runSiteProfileTest(entRoot, workspaceRoot) {
     throw new Error("profileHasAbilityPattern should match get-posts");
   }
 
+  if (!isAbilityAllowed(profile, "get-posts")) {
+    throw new Error("isAbilityAllowed should allow executable ability");
+  }
+
+  if (isAbilityAllowed(profile, "seo/get-score")) {
+    throw new Error("isAbilityAllowed should block non-executable ability");
+  }
+
   const fp = envFingerprint({ WP_MCP_URL: "https://a.com/mcp", WP_MCP_USERNAME: "u" });
   if (fp.length !== 16) {
     throw new Error("envFingerprint should be 16 hex chars");
   }
 
+  const summary = countAbilitySummary(profile.abilities);
+  if (summary.executable !== 1 || summary.blocked !== 1) {
+    throw new Error("countAbilitySummary mismatch");
+  }
+
   const routingDoc = path.join(entRoot, "agent-adapters", "shared", "site-routing.md");
   if (!fs.existsSync(routingDoc)) {
     throw new Error("Missing site-routing.md policy doc");
+  }
+
+  const extensionsExample = path.join(entRoot, "content", "extensions.yaml.example");
+  if (!fs.existsSync(extensionsExample)) {
+    throw new Error("Missing content/extensions.yaml.example");
+  }
+
+  const loaded = loadExtensions(root);
+  if (loaded.extensions.length !== 0) {
+    throw new Error("expected no extensions in empty workspace");
   }
 }

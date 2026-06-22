@@ -9,12 +9,18 @@ export function scaffoldWorkspace(entRoot, workspaceRoot) {
   const entStateDir = path.join(workspaceRoot, ".ent");
   const envDest = path.join(workspaceRoot, ".env");
   const envExample = path.join(entRoot, ".env.example");
+  const extensionsExample = path.join(entRoot, "content", "extensions.yaml.example");
+  const extensionsDest = path.join(workspaceRoot, "content", "extensions.yaml.example");
 
   fs.mkdirSync(contentDir, { recursive: true });
   fs.mkdirSync(entStateDir, { recursive: true });
 
   if (!fs.existsSync(envDest) && fs.existsSync(envExample)) {
     fs.copyFileSync(envExample, envDest);
+  }
+
+  if (fs.existsSync(extensionsExample) && !fs.existsSync(extensionsDest)) {
+    fs.copyFileSync(extensionsExample, extensionsDest);
   }
 
   syncWorkspace(entRoot, workspaceRoot, "cursor");

@@ -1,7 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getEntRoot } from "./manifest.mjs";
-import { abilityHaystack, profileHasAbilityPattern } from "./site-profile.mjs";
+import {
+  abilityHaystack,
+  isAbilityAllowed,
+  listExecutableAbilityNames,
+  profileHasAbilityPattern,
+} from "./site-profile.mjs";
+import { formatExtensionHints } from "./extensions.mjs";
 
 const STATIC_REL = path.join("agent-adapters", "shared", "site-routing.md");
 
@@ -22,6 +28,7 @@ export function formatSiteProfileBlock(profile) {
     ].join("\n");
   }
 
+  const summary = profile.abilities_summary ?? {};
   const lines = [
     "## Site profile",
     "",
@@ -31,26 +38,24 @@ export function formatSiteProfileBlock(profile) {
     `- **REST auth:** ${profile.checks?.rest_ok ? "yes" : "no"}`,
     `- **MCP adapter:** ${profile.checks?.mcp_ok ? "yes" : "no"} (${profile.mcp?.tool_count ?? 0} tools)`,
     `- **MCP server (Cursor):** ${profile.mcp?.server_name ?? "unknown"}`,
-    `- **Public abilities:** ${profile.abilities?.length ?? 0}`,
+    `- **Abilities:** ${summary.discovered ?? 0} discovered, ${summary.executable ?? 0} executable, ${summary.blocked ?? 0} blocked`,
   ];
 
-  if (profile.abilities?.length) {
-    const names = profile.abilities
-      .slice(0, 12)
-      .map((a) => a.name)
-      .join(", ");
-    const more = profile.abilities.length > 12 ? ` (+${profile.abilities.length - 12} more)` : "";
-    lines.push(`- **Ability names:** ${names}${more}`);
+  const executable = listExecutableAbilityNames(profile).slice(0, 12);
+  if (executable.length) {
+    lines.push(`- **Executable ability names:** ${executable.join(", ")}`);
   }
 
-  const haystack = abilityHaystack(profile.abilities);
-  const flags = [];
-  if (/yoast|seo-score|rank-math|seo/.test(haystack)) {
-    flags.push("SEO/Yoast-like abilities present");
-  } else {
-    flags.push("no SEO/Yoast abilities in profile");
+  const rest = profile.rest ?? {};
+  if (rest.meta_prefixes?.length) {
+    lines.push(`- **REST meta prefixes (sample):** ${rest.meta_prefixes.join(", ")}`);
   }
-  lines.push(`- **Note:** ${flags.join("; ")}`);
+  if (rest.namespaces?.length) {
+    lines.push(
+      `- **REST namespaces:** ${rest.namespaces.slice(0, 8).join(", ")}${rest.namespaces.length > 8 ? " …" : ""}`
+    );
+  }
+
   lines.push(`- **Probed:** ${profile.probed_at ?? "unknown"}`);
 
   return lines.join("\n");
@@ -60,17 +65,29 @@ export function formatRoutingSummary() {
   return [
     "## Agent routing (Ent)",
     "",
-    "- **REST** for core WP resources when no listed MCP ability applies (`checks.rest_ok` required).",
-    "- **MCP execute-ability** only for abilities in site profile (`checks.mcp_ok` required).",
-    "- **Do not** use MCP for plugin/SEO/analytics tasks unless a matching ability is listed.",
+    "- **REST** for core WordPress when no executable MCP ability applies (`checks.rest_ok` required).",
+    "- **MCP execute-ability** only for abilities with `executable: true` in site profile.",
+    "- **Extension tasks** require a matching executable ability — do not brute-force plugin APIs.",
     "- Full policy: `ent/agent-adapters/shared/site-routing.md`",
   ].join("\n");
 }
 
-const PLUGIN_TASK_PATTERN =
-  /yoast|seo|analytics|ga4|plausible|search.?console|plugin|theme|rank.?math|woocommerce|acf/i;
+export function formatSessionExtensionHints(workspaceRoot) {
+  return formatExtensionHints(loadExtensions(workspaceRoot));
+}
 
-export function buildMcpGuardMessage(profile, toolName = "") {
+function extractAbilityName(toolInput) {
+  const input = toolInput ?? {};
+  const candidates = [input.ability_name, input.ability, input.name, input.arguments?.ability_name];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+export function buildMcpGuardMessage(profile, toolName = "", toolInput = {}) {
   const base = "Ent MCP: follow site profile and routing policy in session preload.";
 
   if (!profile) {
@@ -86,15 +103,21 @@ export function buildMcpGuardMessage(profile, toolName = "") {
   }
 
   const tool = String(toolName).toLowerCase();
-  if (/execute-ability|execute_ability/.test(tool) && PLUGIN_TASK_PATTERN.test(tool)) {
-    if (!profileHasAbilityPattern(profile, ["yoast", "seo", "analytics", "search-console", "gsc"])) {
-      return `${base} This site has no SEO/analytics abilities in profile — do not execute-ability for that task.`;
-    }
-  }
-
   if (/execute-ability|execute_ability/.test(tool)) {
-    return `${base} Only execute abilities listed in .ent/site-profile.json.`;
+    const abilityName = extractAbilityName(toolInput);
+    if (abilityName && !isAbilityAllowed(profile, abilityName)) {
+      const match = (profile.abilities ?? []).find((a) => a.name === abilityName);
+      if (!match) {
+        return `${base} Ability "${abilityName}" is not in site profile.`;
+      }
+      return `${base} Ability "${abilityName}" is not executable (${match.error_code ?? "blocked"}).`;
+    }
+    return `${base} Only execute abilities marked executable in .ent/site-profile.json.`;
   }
 
-  return base;
+  return profile.mcp?.server_name
+    ? `${base} Use MCP server "${profile.mcp.server_name}" for this workspace.`
+    : base;
 }
+
+export { abilityHaystack, profileHasAbilityPattern };
