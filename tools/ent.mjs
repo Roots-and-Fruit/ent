@@ -10,6 +10,7 @@ import { scaffoldWorkspace } from "./lib/scaffold.mjs";
 import { runScaffoldTest } from "./lib/test-scaffold.mjs";
 import { runMcpConfigTest } from "./lib/test-mcp-config.mjs";
 import { runOnboardLogTest } from "./lib/test-onboard.mjs";
+import { runOnboardHtmlTest } from "./lib/test-onboard-html.mjs";
 import { runOffboardTest } from "./lib/test-offboard.mjs";
 import { runOnboard } from "./lib/onboard.mjs";
 import { runOffboard } from "./lib/offboard.mjs";
@@ -28,7 +29,7 @@ Usage:
   node tools/ent.mjs scaffold --workspace-root <path>
   node tools/ent.mjs test <suite> --workspace-root <path>
 
-Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, offboard, sync, negative-audit, scaffold
+Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, offboard, sync, negative-audit, scaffold
 `);
 }
 
@@ -146,7 +147,7 @@ async function cmdRenderOnboard(args) {
     process.exit(1);
   }
   const report = JSON.parse(fs.readFileSync(auditPath, "utf8"));
-  const out = writeOnboardHtml(workspaceRoot, report);
+  const out = await writeOnboardHtml(workspaceRoot, report);
   console.log(`OK  onboard → ${out}`);
   process.exit(0);
 }
@@ -253,6 +254,12 @@ async function cmdTestMcpConfig() {
   process.exit(0);
 }
 
+async function cmdTestOnboardHtml() {
+  runOnboardHtmlTest();
+  console.log("OK  test onboard-html");
+  process.exit(0);
+}
+
 async function cmdTestOnboard(args) {
   const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
   if (!workspaceRoot) {
@@ -297,6 +304,9 @@ async function cmdTest(args) {
         process.exit(1);
       }
       await cmdTestOnboard(args);
+      break;
+    case "onboard-html":
+      await cmdTestOnboardHtml();
       break;
     case "offboard":
       if (!args.workspaceRoot) {

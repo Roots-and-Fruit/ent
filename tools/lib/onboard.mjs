@@ -132,7 +132,7 @@ export async function runOnboard(entRoot, workspaceRoot, options = {}) {
       if (!report) {
         return { exitCode: 1, message: "audit did not run" };
       }
-      htmlPath = writeOnboardHtml(root, report);
+      htmlPath = await writeOnboardHtml(root, report);
       return { exitCode: 0, message: htmlPath };
     },
     steps,

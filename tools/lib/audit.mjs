@@ -9,6 +9,9 @@ import {
 } from "./mcp-config.mjs";
 import { portableWorkspaceRoot, relToWorkspace } from "./paths.mjs";
 import { runWpMcpSmoke } from "./wp-smoke.mjs";
+import { writeOnboardHtml } from "./onboard-html.mjs";
+
+export { writeOnboardHtml };
 
 function check(id, profile, status, message, evidence = "") {
   return { id, profile, status, message, evidence };
@@ -230,59 +233,6 @@ export function writeAuditReport(workspaceRoot, report) {
   fs.mkdirSync(entDir, { recursive: true });
   const outPath = path.join(entDir, "audit.json");
   fs.writeFileSync(outPath, JSON.stringify(report, null, 2) + "\n", "utf8");
-  return outPath;
-}
-
-export function renderOnboardHtml(report) {
-  const rows = report.checks
-    .map((c) => {
-      return `<tr class="status-${c.status}"><td><code>${c.id}</code></td><td>${c.profile}</td><td>${c.status}</td><td>${escapeHtml(c.message)}</td></tr>`;
-    })
-    .join("\n");
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Ent onboard checklist</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 960px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 0.5rem 0.75rem; text-align: left; }
-    .status-pass td:nth-child(3) { color: #0a0; }
-    .status-fail td:nth-child(3) { color: #c00; font-weight: 600; }
-    .status-skip td:nth-child(3) { color: #666; }
-    summary { margin: 1rem 0; }
-  </style>
-</head>
-<body>
-  <h1>Ent onboard checklist</h1>
-  <p>Workspace: <code>${escapeHtml(report.workspace_root)}</code></p>
-  <p>Ent: <code>${escapeHtml(report.ent_version)}</code></p>
-  <summary>Pass ${report.summary.pass} · Fail ${report.summary.fail} · Skip ${report.summary.skip}</summary>
-  <table>
-    <thead><tr><th>Check</th><th>Profile</th><th>Status</th><th>Message</th></tr></thead>
-    <tbody>
-${rows}
-    </tbody>
-  </table>
-  <p>Re-run: <code>node ent/tools/ent.mjs audit --workspace-root .</code></p>
-</body>
-</html>
-`;
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-export function writeOnboardHtml(workspaceRoot, report) {
-  const outPath = path.join(workspaceRoot, ".ent", "onboard.html");
-  fs.writeFileSync(outPath, renderOnboardHtml(report), "utf8");
   return outPath;
 }
 

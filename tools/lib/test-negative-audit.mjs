@@ -21,7 +21,7 @@ export async function runNegativeAuditTest(entRoot, workspaceRoot) {
 
   const report = await runAudit(workspaceRoot, { live: false });
   writeAuditReport(workspaceRoot, report);
-  writeOnboardHtml(workspaceRoot, report);
+  await writeOnboardHtml(workspaceRoot, report);
 
   const goldenPath = path.join(entRoot, "test", "golden", "audit-post-sync-no-env.json");
   const golden = JSON.parse(fs.readFileSync(goldenPath, "utf8"));
@@ -48,9 +48,18 @@ export async function runNegativeAuditTest(entRoot, workspaceRoot) {
   }
 
   const html = fs.readFileSync(path.join(workspaceRoot, ".ent", "onboard.html"), "utf8");
+  const auditMatch = html.match(/<script type="application\/json" id="ent-audit-data">([\s\S]*?)<\/script>/);
+  if (!auditMatch) {
+    throw new Error("onboard.html missing ent-audit-data script");
+  }
+  const auditData = JSON.parse(auditMatch[1]);
   for (const c of report.checks.filter((x) => x.status === "fail")) {
-    if (!html.includes(c.id)) {
-      throw new Error(`onboard.html missing fail id ${c.id}`);
+    const row = auditData.checks.find((entry) => entry.id === c.id);
+    if (!row || row.status !== "fail") {
+      throw new Error(`onboard.html audit data missing fail id ${c.id}`);
     }
+  }
+  if (!html.includes("Manage / edit content")) {
+    throw new Error("onboard.html missing capability sections");
   }
 }

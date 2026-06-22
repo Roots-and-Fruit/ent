@@ -23,7 +23,7 @@ If the user asked for **`--logging`**, a trace, or verbose debugging, add `--log
 node ent/tools/ent.mjs onboard --workspace-root . --log --verbose
 ```
 
-3. Open `.ent/onboard.html` and fix **one** failing check at a time.
+3. Open `.ent/onboard.html` — branded welcome page with capability checklist and discovered abilities. Fix **one** failing setup item at a time (see "Complete setup first" when audit is not clean).
 4. Re-run onboard (or `audit`) after each fix until `summary.fail` is 0 and `summary.skip` is 0.
 5. When `--log` was used, tell the user the trace path: `.ent/onboard-log.json` (attach or summarize it when debugging in a new environment).
 
