@@ -6,6 +6,7 @@ import {
   formatExtensionHintsBlock,
   formatRoutingSummary,
   formatSiteProfileBlock,
+  formatSiteSpecificationsHintsBlock,
 } from "./site-snapshot.mjs";
 
 const require = createRequire(import.meta.url);
@@ -235,11 +236,45 @@ function loadExtensionsDoc(projectDir) {
   return { extensions: [] };
 }
 
+function loadSiteSpecificationsDoc(projectDir) {
+  const candidates = [
+    path.join(projectDir, "content", "site-specifications.yaml"),
+    path.join(projectDir, "content", "site-specifications.md"),
+    path.join(projectDir, ".ent", "site-specifications.yaml"),
+  ];
+  for (const filePath of candidates) {
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    if (filePath.endsWith(".md")) {
+      return {
+        path: filePath,
+        format: "markdown",
+        raw: fs.readFileSync(filePath, "utf8").trim(),
+      };
+    }
+    try {
+      const entYaml = path.join(projectDir, "ent", "node_modules", "yaml");
+      const YAML = require(fs.existsSync(entYaml) ? entYaml : "yaml");
+      const doc = YAML.parse(fs.readFileSync(filePath, "utf8"));
+      if (doc && typeof doc === "object") {
+        return { path: filePath, format: "yaml", doc };
+      }
+    } catch {
+      // try next path
+    }
+  }
+  return { path: null, format: null, doc: null, raw: null };
+}
+
 function siteProfileLines(projectDir) {
   const profile = readJsonFile(path.join(projectDir, ".ent", "site-profile.json"));
   const extensionsDoc = loadExtensionsDoc(projectDir);
   const extensionBlock = formatExtensionHintsBlock(extensionsDoc);
-  return [formatSiteProfileBlock(profile), formatRoutingSummary(), extensionBlock].filter(Boolean);
+  const specBlock = formatSiteSpecificationsHintsBlock(loadSiteSpecificationsDoc(projectDir));
+  return [formatSiteProfileBlock(profile), formatRoutingSummary(), specBlock, extensionBlock].filter(
+    Boolean
+  );
 }
 
 function workStartBlock(openMode, kitRoot, consumerRoot, preloadRoot) {

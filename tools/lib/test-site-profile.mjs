@@ -10,6 +10,7 @@ import {
 } from "./site-profile.mjs";
 import { formatRoutingSummary, formatSiteProfileBlock } from "./site-routing.mjs";
 import { loadExtensions } from "./extensions.mjs";
+import { loadSiteSpecifications } from "./site-specifications.mjs";
 import { countAbilitySummary } from "./ability-smoke.mjs";
 
 function tempDir() {
@@ -49,6 +50,7 @@ export async function runSiteProfileTest(entRoot, workspaceRoot) {
       meta_prefixes: ["_yoast_"],
       namespaces: ["yoast/v1"],
       namespace_probes: [],
+      post_types: [{ slug: "podcast", rest_base: "podcast", published_total: 137 }],
     },
     checks: { identity_ok: true, rest_ok: true, mcp_ok: true, abilities_usable: false },
   };
@@ -62,6 +64,9 @@ export async function runSiteProfileTest(entRoot, workspaceRoot) {
   const block = formatSiteProfileBlock(profile);
   if (!block.includes("example.com") || !block.includes("1 executable")) {
     throw new Error("formatSiteProfileBlock missing expected fields");
+  }
+  if (!block.includes("podcast=137")) {
+    throw new Error("formatSiteProfileBlock should include REST post type totals");
   }
 
   const routing = formatRoutingSummary();
@@ -101,8 +106,18 @@ export async function runSiteProfileTest(entRoot, workspaceRoot) {
     throw new Error("Missing content/extensions.yaml.example");
   }
 
+  const siteSpecExample = path.join(entRoot, "content", "site-specifications.yaml.example");
+  if (!fs.existsSync(siteSpecExample)) {
+    throw new Error("Missing content/site-specifications.yaml.example");
+  }
+
   const loaded = loadExtensions(root);
   if (loaded.extensions.length !== 0) {
     throw new Error("expected no extensions in empty workspace");
+  }
+
+  const specs = loadSiteSpecifications(root);
+  if (specs.path != null) {
+    throw new Error("expected no site specifications in empty workspace");
   }
 }

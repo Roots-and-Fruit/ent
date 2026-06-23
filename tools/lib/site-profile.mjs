@@ -79,7 +79,7 @@ async function buildSiteProfileFromSmoke(workspaceRoot, options) {
   };
 
   if (!url) {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
     profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }
@@ -122,7 +122,7 @@ async function buildSiteProfileFromSmoke(workspaceRoot, options) {
 
 async function finalizeSiteProfile(profile, { siteRoot, username, password, url, smokeOk }) {
   if (!url || !username || !password) {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
     profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }
@@ -130,7 +130,7 @@ async function finalizeSiteProfile(profile, { siteRoot, username, password, url,
   if (profile.checks.rest_ok) {
     profile.rest = await probeRestInventory({ siteRoot, username, password });
   } else {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
   }
 
   if (smokeOk && profile.abilities.length > 0) {
@@ -187,7 +187,7 @@ export async function probeSiteProfile(workspaceRoot, options = {}) {
   };
 
   if (!url || !username || !password) {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [] };
+    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
     profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }

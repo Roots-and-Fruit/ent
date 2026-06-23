@@ -1,0 +1,38 @@
+# Optional site semantics — copy to content/site-specifications.yaml
+# Live counts come from audit site-profile (REST); this file defines meaning and field names.
+
+version: "1"
+
+site:
+  label: Example Site
+  url: https://example.com
+
+definitions:
+  published: |
+    WordPress status=publish for the content model (includes upcoming announcements).
+  live: |
+    Published content whose air/go-live date is on or before today (site timezone).
+
+content_models:
+  episodes:
+    label: Podcast episodes
+    post_type: podcast
+    rest_path: /wp/v2/podcast
+    fields:
+      aired_on_date:
+        type: date
+        acf_key: aired_on_date
+      episode_number:
+        type: integer
+        acf_key: episode_number
+    filters:
+      live: "acf.aired_on_date <= today"
+      upcoming: "acf.aired_on_date > today"
+      missing_aired_date: "published and acf.aired_on_date empty"
+    notes:
+      - Episode numbers may have gaps; do not infer count from max episode_number alone.
+
+rest:
+  notes:
+    - Prefer X-WP-Total from ent wp get or site-profile post_type totals for published counts.
+    - Use filters above for live vs upcoming; REST totals alone do not split aired vs upcoming.

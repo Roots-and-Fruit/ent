@@ -8,6 +8,7 @@ import {
   profileHasAbilityPattern,
 } from "./site-profile.mjs";
 import { formatExtensionHints } from "./extensions.mjs";
+import { formatSiteSpecificationsHints, loadSiteSpecifications } from "./site-specifications.mjs";
 
 const STATIC_REL = path.join("agent-adapters", "shared", "site-routing.md");
 
@@ -55,6 +56,21 @@ export function formatSiteProfileBlock(profile) {
       `- **REST namespaces:** ${rest.namespaces.slice(0, 8).join(", ")}${rest.namespaces.length > 8 ? " …" : ""}`
     );
   }
+  if (rest.post_types?.length) {
+    const totals = rest.post_types
+      .filter((t) => t.published_total != null)
+      .slice(0, 8)
+      .map((t) => `${t.slug}=${t.published_total}`)
+      .join(", ");
+    if (totals) {
+      lines.push(`- **REST published totals:** ${totals}${rest.post_types.length > 8 ? " …" : ""}`);
+    }
+    const slugs = rest.post_types
+      .slice(0, 10)
+      .map((t) => t.slug)
+      .join(", ");
+    lines.push(`- **REST post types:** ${slugs}${rest.post_types.length > 10 ? " …" : ""}`);
+  }
 
   lines.push(`- **Probed:** ${profile.probed_at ?? "unknown"}`);
 
@@ -74,6 +90,10 @@ export function formatRoutingSummary() {
 
 export function formatSessionExtensionHints(workspaceRoot) {
   return formatExtensionHints(loadExtensions(workspaceRoot));
+}
+
+export function formatSessionSiteSpecificationsHints(workspaceRoot) {
+  return formatSiteSpecificationsHints(loadSiteSpecifications(workspaceRoot));
 }
 
 function extractAbilityName(toolInput) {

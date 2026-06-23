@@ -36,6 +36,36 @@ function extractNamespaces(routes) {
   return [...namespaces].sort();
 }
 
+export function parseWpTotalHeaders(headers) {
+  const totalRaw = headers.get("X-WP-Total");
+  const pagesRaw = headers.get("X-WP-TotalPages");
+  const total = totalRaw != null && totalRaw !== "" ? Number(totalRaw) : null;
+  const totalPages = pagesRaw != null && pagesRaw !== "" ? Number(pagesRaw) : null;
+  return {
+    total: Number.isFinite(total) ? total : null,
+    totalPages: Number.isFinite(totalPages) ? totalPages : null,
+  };
+}
+
+export function normalizeRestPostTypes(typesPayload) {
+  const entries = [];
+  for (const [slug, type] of Object.entries(typesPayload ?? {})) {
+    if (!type || typeof type !== "object") {
+      continue;
+    }
+    if (type.rest_base == null || type.visibility?.show_in_rest === false) {
+      continue;
+    }
+    entries.push({
+      slug,
+      rest_base: type.rest_base,
+      name: type.name ?? slug,
+      hierarchical: Boolean(type.hierarchical),
+    });
+  }
+  return entries.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
 async function probeNamespace(siteRoot, namespace, headers) {
   const url = `${siteRoot.replace(/\/$/, "")}/wp-json/${namespace}`;
   try {
@@ -43,6 +73,50 @@ async function probeNamespace(siteRoot, namespace, headers) {
     return { namespace, status: res.status, ok: res.ok };
   } catch (err) {
     return { namespace, status: 0, ok: false, error: err.message ?? String(err) };
+  }
+}
+
+async function probePublishedTotal(siteRoot, restBase, headers) {
+  const url = `${siteRoot.replace(/\/$/, "")}/wp-json/wp/v2/${restBase}?per_page=1&status=publish&_fields=id`;
+  try {
+    const res = await fetch(url, { headers, method: "GET" });
+    const totals = parseWpTotalHeaders(res.headers);
+    return {
+      rest_base: restBase,
+      status: res.status,
+      ok: res.ok,
+      published_total: res.ok ? totals.total : null,
+    };
+  } catch (err) {
+    return { rest_base: restBase, status: 0, ok: false, published_total: null, error: err.message ?? String(err) };
+  }
+}
+
+export async function probePostTypeInventory(siteRoot, headers, { maxTypes = 16 } = {}) {
+  const root = siteRoot.replace(/\/$/, "");
+  try {
+    const typesRes = await fetch(`${root}/wp-json/wp/v2/types`, { headers });
+    if (!typesRes.ok) {
+      return [];
+    }
+    const types = normalizeRestPostTypes(await typesRes.json());
+    const selected = types.slice(0, maxTypes);
+    const totals = await Promise.all(
+      selected.map((type) => probePublishedTotal(root, type.rest_base, headers))
+    );
+    const totalByBase = new Map(totals.map((row) => [row.rest_base, row]));
+    return selected.map((type) => {
+      const probe = totalByBase.get(type.rest_base) ?? {};
+      return {
+        ...type,
+        rest_path: `/wp/v2/${type.rest_base}`,
+        published_total: probe.published_total ?? null,
+        probe_status: probe.status ?? null,
+        probe_ok: probe.ok ?? false,
+      };
+    });
+  } catch {
+    return [];
   }
 }
 
@@ -54,6 +128,7 @@ export async function probeRestInventory({ siteRoot, username, password }) {
     meta_prefixes: [],
     namespaces: [],
     namespace_probes: [],
+    post_types: [],
   };
 
   try {
@@ -70,6 +145,8 @@ export async function probeRestInventory({ siteRoot, username, password }) {
   } catch {
     // REST index optional
   }
+
+  inventory.post_types = await probePostTypeInventory(root, headers);
 
   try {
     const postRes = await fetch(
@@ -103,5 +180,15 @@ export async function wpRestGet({ siteRoot, username, password, restPath, query 
   } catch {
     body = text;
   }
-  return { ok: res.ok, status: res.status, url, body };
+  const totals = parseWpTotalHeaders(res.headers);
+  return {
+    ok: res.ok,
+    status: res.status,
+    url,
+    body,
+    headers: {
+      total: totals.total,
+      totalPages: totals.totalPages,
+    },
+  };
 }

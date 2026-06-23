@@ -15,6 +15,7 @@ import { runOnboardRefreshTest } from "./lib/test-onboard-refresh.mjs";
 import { runOffboardTest } from "./lib/test-offboard.mjs";
 import { runSiteProfileTest } from "./lib/test-site-profile.mjs";
 import { runWpCommandTest } from "./lib/test-wp-command.mjs";
+import { runWpRestProbeTest } from "./lib/test-wp-rest-probe.mjs";
 import { runOnboard, ONBOARD_SUCCESS_MESSAGE } from "./lib/onboard.mjs";
 import { runOffboard } from "./lib/offboard.mjs";
 import { runWpAbilityExecute, runWpGet } from "./lib/wp-command.mjs";
@@ -36,10 +37,11 @@ Usage:
   node tools/ent.mjs render-onboard --workspace-root <path>
   node tools/ent.mjs scaffold --workspace-root <path>
   node tools/ent.mjs wp get --workspace-root <path> [--path /wp/v2/posts] [--query "per_page=1"]
+  # JSON includes headers.total and headers.totalPages when WordPress sends X-WP-Total
   node tools/ent.mjs wp ability --workspace-root <path> --name <ability-name> [--input '{}']
   node tools/ent.mjs test <suite> --workspace-root <path>
 
-Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, onboard-refresh, offboard, site-profile, wp-command, sync, negative-audit, scaffold
+Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, onboard-refresh, offboard, site-profile, wp-command, wp-rest-probe, sync, negative-audit, scaffold
 `);
 }
 
@@ -393,6 +395,12 @@ async function cmdTestWpCommand() {
   process.exit(0);
 }
 
+async function cmdTestWpRestProbe() {
+  runWpRestProbeTest();
+  console.log("OK  test wp-rest-probe");
+  process.exit(0);
+}
+
 async function cmdTestSiteProfile(args) {
   const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
   await runSiteProfileTest(getEntRoot(), workspaceRoot || undefined);
@@ -452,6 +460,9 @@ async function cmdTest(args) {
       break;
     case "wp-command":
       await cmdTestWpCommand();
+      break;
+    case "wp-rest-probe":
+      await cmdTestWpRestProbe();
       break;
     case "sync":
       if (!args.workspaceRoot) {

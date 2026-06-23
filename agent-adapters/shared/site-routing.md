@@ -32,6 +32,8 @@ Use this with `.ent/site-profile.json` on every session. Humans configure the si
 
 ## Site-local hints
 
+Optional `content/site-specifications.yaml` defines content models, field names, and business definitions (e.g. live vs published). Live published counts are probed into `.ent/site-profile.json` at audit (`rest.post_types`).
+
 Optional `content/extensions.yaml` maps human labels (e.g. "SEO scores") to ability patterns and agent hints. Ent does not ship plugin-specific rules in the kit.
 
 ## Staleness
@@ -41,6 +43,11 @@ Re-run `node ent/tools/ent.mjs audit --workspace-root .` when profile is missing
 ## CLI helpers
 
 ```bash
-node ent/tools/ent.mjs wp get --workspace-root . --path /wp/v2/posts --query "per_page=1&_fields=id,title,meta"
+node ent/tools/ent.mjs wp get --workspace-root . --path /wp/v2/posts --query "per_page=1&_fields=id"
+```
+
+`wp get` JSON includes `headers.total` and `headers.totalPages` from `X-WP-Total` / `X-WP-TotalPages` when WordPress returns them.
+
+```bash
 node ent/tools/ent.mjs wp ability --workspace-root . --name "namespace/ability-name" --input '{}'
 ```

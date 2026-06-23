@@ -11,6 +11,8 @@ export function scaffoldWorkspace(entRoot, workspaceRoot) {
   const envExample = path.join(entRoot, ".env.example");
   const extensionsExample = path.join(entRoot, "content", "extensions.yaml.example");
   const extensionsDest = path.join(workspaceRoot, "content", "extensions.yaml.example");
+  const siteSpecExample = path.join(entRoot, "content", "site-specifications.yaml.example");
+  const siteSpecDest = path.join(workspaceRoot, "content", "site-specifications.yaml.example");
 
   fs.mkdirSync(contentDir, { recursive: true });
   fs.mkdirSync(entStateDir, { recursive: true });
@@ -21,6 +23,10 @@ export function scaffoldWorkspace(entRoot, workspaceRoot) {
 
   if (fs.existsSync(extensionsExample) && !fs.existsSync(extensionsDest)) {
     fs.copyFileSync(extensionsExample, extensionsDest);
+  }
+
+  if (fs.existsSync(siteSpecExample) && !fs.existsSync(siteSpecDest)) {
+    fs.copyFileSync(siteSpecExample, siteSpecDest);
   }
 
   syncWorkspace(entRoot, workspaceRoot, "cursor");

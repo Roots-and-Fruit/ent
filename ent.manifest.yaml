@@ -40,6 +40,9 @@ workspace_scaffold:
   - path: content/extensions.yaml.example
     source: content/extensions.yaml.example
     description: Optional site-local extension labels and agent hints (copy to extensions.yaml)
+  - path: content/site-specifications.yaml.example
+    source: content/site-specifications.yaml.example
+    description: Optional site semantics and content models (copy to site-specifications.yaml)
   - path: .ent/
     description: Ent workspace state, audit output, onboard checklist
   - path: .env
