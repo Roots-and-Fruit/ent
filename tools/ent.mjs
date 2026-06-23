@@ -11,13 +11,17 @@ import { runScaffoldTest } from "./lib/test-scaffold.mjs";
 import { runMcpConfigTest } from "./lib/test-mcp-config.mjs";
 import { runOnboardLogTest } from "./lib/test-onboard.mjs";
 import { runOnboardHtmlTest } from "./lib/test-onboard-html.mjs";
+import { runOnboardRefreshTest } from "./lib/test-onboard-refresh.mjs";
 import { runOffboardTest } from "./lib/test-offboard.mjs";
 import { runSiteProfileTest } from "./lib/test-site-profile.mjs";
 import { runWpCommandTest } from "./lib/test-wp-command.mjs";
 import { runOnboard, ONBOARD_SUCCESS_MESSAGE } from "./lib/onboard.mjs";
 import { runOffboard } from "./lib/offboard.mjs";
 import { runWpAbilityExecute, runWpGet } from "./lib/wp-command.mjs";
-import { runAudit, writeAuditReport, writeOnboardHtml, writeStateJson } from "./lib/audit.mjs";
+import { runAudit, writeAuditReport, writeStateJson } from "./lib/audit.mjs";
+import {
+  refreshOnboardDashboard,
+} from "./lib/onboard-refresh.mjs";
 
 function usage() {
   console.log(`Ent kit CLI
@@ -25,7 +29,8 @@ function usage() {
 Usage:
   node tools/ent.mjs validate-manifest
   node tools/ent.mjs sync --workspace-root <path> [--agent cursor|claude-code|all]
-  node tools/ent.mjs audit --workspace-root <path>
+  node tools/ent.mjs audit --workspace-root <path> [--offline] [--no-render]
+  node tools/ent.mjs refresh-onboard --workspace-root <path> [--force] [--offline]
   node tools/ent.mjs onboard --workspace-root <path> [--log] [--verbose]
   node tools/ent.mjs offboard --workspace-root <path> [--dry-run] [--clear-audit] [--clear-env] [--remove-projected] [--remove-kit] [--keep-mcp] [--keep-state]
   node tools/ent.mjs render-onboard --workspace-root <path>
@@ -34,7 +39,7 @@ Usage:
   node tools/ent.mjs wp ability --workspace-root <path> --name <ability-name> [--input '{}']
   node tools/ent.mjs test <suite> --workspace-root <path>
 
-Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, offboard, site-profile, wp-command, sync, negative-audit, scaffold
+Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, onboard-refresh, offboard, site-profile, wp-command, sync, negative-audit, scaffold
 `);
 }
 
@@ -182,15 +187,63 @@ async function cmdAudit(args) {
     console.error("audit requires --workspace-root");
     process.exit(1);
   }
-  const report = await runAudit(workspaceRoot);
-  const out = writeAuditReport(workspaceRoot, report);
-  console.log(`OK  audit → ${out}`);
-  console.log(`    pass=${report.summary.pass} fail=${report.summary.fail} skip=${report.summary.skip}`);
-  if (report.summary.fail === 0 && report.summary.skip === 0) {
-    const statePath = writeStateJson(workspaceRoot, report);
-    console.log(`OK  state → ${statePath}`);
+  const offline = Boolean(args.offline);
+  const noRender = Boolean(args["no-render"]);
+
+  if (noRender) {
+    const report = await runAudit(workspaceRoot, { live: !offline });
+    const out = writeAuditReport(workspaceRoot, report);
+    console.log(`OK  audit → ${out}`);
+    console.log(`    pass=${report.summary.pass} fail=${report.summary.fail} skip=${report.summary.skip}`);
+    if (report.summary.fail === 0 && report.summary.skip === 0) {
+      const statePath = writeStateJson(workspaceRoot, report);
+      console.log(`OK  state → ${statePath}`);
+    }
+    process.exit(report.summary.fail > 0 || report.summary.skip > 0 ? 1 : 0);
   }
-  process.exit(report.summary.fail > 0 ? 1 : 0);
+
+  const result = await refreshOnboardDashboard(workspaceRoot, {
+    reason: "audit",
+    force: true,
+    live: !offline,
+  });
+  console.log(`OK  audit → ${path.join(workspaceRoot, ".ent", "audit.json")}`);
+  if (result.htmlPath) {
+    console.log(`OK  onboard → ${result.htmlPath}`);
+  }
+  console.log(
+    `    pass=${result.report.summary.pass} fail=${result.report.summary.fail} skip=${result.report.summary.skip}`
+  );
+  if (result.statePath) {
+    console.log(`OK  state → ${result.statePath}`);
+  }
+  process.exit(result.exitCode ?? 0);
+}
+
+async function cmdRefreshOnboard(args) {
+  const workspaceRoot = path.resolve(args.workspaceRoot ?? "");
+  if (!workspaceRoot) {
+    console.error("refresh-onboard requires --workspace-root");
+    process.exit(1);
+  }
+  const force = Boolean(args.force);
+  const offline = Boolean(args.offline);
+  const result = await refreshOnboardDashboard(workspaceRoot, {
+    reason: "refresh-onboard",
+    force,
+    live: offline ? false : undefined,
+  });
+
+  if (result.skipped) {
+    console.log(`OK  refresh-onboard skipped (${result.skip_reason})`);
+    process.exit(0);
+  }
+
+  console.log(`OK  refresh-onboard → ${result.htmlPath}`);
+  console.log(
+    `    pass=${result.report.summary.pass} fail=${result.report.summary.fail} skip=${result.report.summary.skip}`
+  );
+  process.exit(result.exitCode ?? 0);
 }
 
 async function cmdRenderOnboard(args) {
@@ -199,14 +252,12 @@ async function cmdRenderOnboard(args) {
     console.error("render-onboard requires --workspace-root");
     process.exit(1);
   }
-  const auditPath = path.join(workspaceRoot, ".ent", "audit.json");
-  if (!fs.existsSync(auditPath)) {
-    console.error("Missing .ent/audit.json — run audit first");
-    process.exit(1);
-  }
-  const report = JSON.parse(fs.readFileSync(auditPath, "utf8"));
-  const out = await writeOnboardHtml(workspaceRoot, report);
-  console.log(`OK  onboard → ${out}`);
+  const result = await refreshOnboardDashboard(workspaceRoot, {
+    reason: "render-only",
+    force: true,
+    renderOnly: true,
+  });
+  console.log(`OK  onboard → ${result.htmlPath}`);
   process.exit(0);
 }
 
@@ -313,6 +364,12 @@ async function cmdTestMcpConfig() {
   process.exit(0);
 }
 
+async function cmdTestOnboardRefresh() {
+  await runOnboardRefreshTest();
+  console.log("OK  test onboard-refresh");
+  process.exit(0);
+}
+
 async function cmdTestOnboardHtml() {
   runOnboardHtmlTest();
   console.log("OK  test onboard-html");
@@ -379,6 +436,9 @@ async function cmdTest(args) {
       break;
     case "onboard-html":
       await cmdTestOnboardHtml();
+      break;
+    case "onboard-refresh":
+      await cmdTestOnboardRefresh();
       break;
     case "offboard":
       if (!args.workspaceRoot) {
@@ -447,6 +507,9 @@ async function main() {
       break;
     case "render-onboard":
       await cmdRenderOnboard(args);
+      break;
+    case "refresh-onboard":
+      await cmdRefreshOnboard(args);
       break;
     case "scaffold":
       await cmdScaffold(args);

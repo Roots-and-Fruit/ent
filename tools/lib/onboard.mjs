@@ -3,7 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { execSync } from "node:child_process";
 import { scaffoldWorkspace } from "./scaffold.mjs";
-import { runAudit, writeAuditReport, writeOnboardHtml, writeStateJson } from "./audit.mjs";
+import { refreshOnboardDashboard } from "./onboard-refresh.mjs";
 import { canResolveWpMcpLauncher, readMcpServerName } from "./mcp-config.mjs";
 import { parseEnvFile } from "./env.mjs";
 import { portableWorkspaceRoot } from "./paths.mjs";
@@ -114,32 +114,19 @@ export async function runOnboard(entRoot, workspaceRoot, options = {}) {
   const auditExit = await runStep(
     "audit",
     async () => {
-      report = await runAudit(root, { live });
-      const auditPath = writeAuditReport(root, report);
-      if (report.summary.fail === 0 && report.summary.skip === 0) {
-        statePath = writeStateJson(root, report);
-      }
+      const result = await refreshOnboardDashboard(root, {
+        live,
+        reason: "onboard",
+        force: true,
+      });
+      report = result.report;
+      statePath = result.statePath ?? null;
+      htmlPath = result.htmlPath ?? null;
       return {
-        exitCode: report.summary.fail > 0 || report.summary.skip > 0 ? 1 : 0,
+        exitCode: result.exitCode ?? 0,
         summary: report.summary,
-        message: auditPath,
+        message: htmlPath ?? result.skip_reason ?? "refresh skipped",
       };
-    },
-    steps,
-    verbose
-  );
-
-  if (verbose) {
-    console.log("onboard: render-onboard");
-  }
-  await runStep(
-    "render-onboard",
-    async () => {
-      if (!report) {
-        return { exitCode: 1, message: "audit did not run" };
-      }
-      htmlPath = await writeOnboardHtml(root, report);
-      return { exitCode: 0, message: htmlPath };
     },
     steps,
     verbose

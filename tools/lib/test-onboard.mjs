@@ -29,7 +29,7 @@ export async function runOnboardLogTest(entRoot, workspaceRoot) {
   }
 
   const stepNames = log.steps.map((s) => s.name);
-  for (const name of ["scaffold", "audit", "render-onboard"]) {
+  for (const name of ["scaffold", "audit"]) {
     if (!stepNames.includes(name)) {
       throw new Error(`onboard-log.json missing step: ${name}`);
     }

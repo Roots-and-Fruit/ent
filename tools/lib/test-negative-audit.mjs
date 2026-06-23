@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { runAudit, writeAuditReport, writeOnboardHtml } from "./audit.mjs";
+import { refreshOnboardDashboard } from "./onboard-refresh.mjs";
 import { syncWorkspace } from "./sync.mjs";
 
 function stripVolatile(report) {
@@ -19,9 +19,12 @@ export async function runNegativeAuditTest(entRoot, workspaceRoot) {
     fs.unlinkSync(envPath);
   }
 
-  const report = await runAudit(workspaceRoot, { live: false });
-  writeAuditReport(workspaceRoot, report);
-  await writeOnboardHtml(workspaceRoot, report);
+  const result = await refreshOnboardDashboard(workspaceRoot, {
+    reason: "negative-audit-test",
+    force: true,
+    live: false,
+  });
+  const report = result.report;
 
   const goldenPath = path.join(entRoot, "test", "golden", "audit-post-sync-no-env.json");
   const golden = JSON.parse(fs.readFileSync(goldenPath, "utf8"));

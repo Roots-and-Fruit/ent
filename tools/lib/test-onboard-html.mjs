@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadOnboardChecklist, resolveChecklistSections } from "./onboard-checklist.mjs";
+import { buildOnboardPageModel, renderOnboardHtml } from "./onboard-html.mjs";
 import { probeMcpSupport } from "./mcp-support.mjs";
+
+const ENT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 export function runOnboardHtmlTest() {
   const checklist = loadOnboardChecklist();
@@ -44,4 +50,24 @@ export function runOnboardHtmlTest() {
 
   const groups = probeMcpSupport("/tmp/workspace", baseReport, { rest: { namespaces: [] } });
   assert.equal(groups.length, 3);
+
+  const designDoc = path.join(ENT_ROOT, "agent-adapters", "shared", "onboard", "DESIGN.md");
+  assert.ok(readFileSync(designDoc, "utf8").includes("ent-"));
+
+  const model = {
+    report: baseReport,
+    siteTitle: "Test Site",
+    mcpServerName: "test",
+    abilities,
+    sections,
+    ready: true,
+  };
+  const css = readFileSync(path.join(ENT_ROOT, "agent-adapters", "shared", "onboard", "onboard.css"), "utf8");
+  const html = renderOnboardHtml(model, { cssInline: css, footerHtml: '<span class="ent-footer__credit">test</span>' });
+
+  assert.ok(!/<[a-z][^>]*\sstyle="/i.test(html), "onboard.html must not use inline style attributes");
+  assert.ok(html.includes('class="ent-page"'), "onboard.html must use ent-page layout");
+  assert.ok(html.includes('class="ent-mcp"'), "onboard.html must use ent-mcp groups");
+  assert.ok(!html.includes('class="page"'), "legacy page class must not appear");
+  assert.ok(!html.includes('class="hero-card"'), "legacy hero-card class must not appear");
 }

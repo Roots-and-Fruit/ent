@@ -72,6 +72,7 @@ export function planOffboard(workspaceRoot, options) {
       ".ent/audit.json",
       ".ent/site-profile.json",
       ".ent/onboard.html",
+      ".ent/onboard-meta.json",
       ".ent/onboard-log.json",
     ]) {
       if (fs.existsSync(path.join(root, rel))) {

@@ -39,7 +39,7 @@ node tools/ent.mjs validate-manifest
 node tools/ent.mjs test branding-boundary
 node tools/ent.mjs test kit-runtime-boundary
 node tools/ent.mjs test mcp-config
-node tools/ent.mjs test onboard-html
+node tools/ent.mjs test onboard-refresh
 node tools/ent.mjs test site-profile
 node tools/ent.mjs test wp-command
 node tools/ent.mjs test onboard --workspace-root "$ENT_FIXTURE"

@@ -24,7 +24,7 @@
     ],
     "afterFileEdit": [
       {
-        "command": "node .cursor/hooks/after-mcp-json-edit.mjs"
+        "command": "node .cursor/hooks/after-onboard-input-edit.mjs"
       }
     ]
   }
