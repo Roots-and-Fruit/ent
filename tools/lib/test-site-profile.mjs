@@ -95,6 +95,9 @@ export async function runSiteProfileTest(entRoot, workspaceRoot) {
   if (summary.executable !== 1 || summary.blocked !== 1) {
     throw new Error("countAbilitySummary mismatch");
   }
+  if (summary.needs_input !== 0) {
+    throw new Error("countAbilitySummary should include needs_input count");
+  }
 
   const routingDoc = path.join(entRoot, "agent-adapters", "shared", "site-routing.md");
   if (!fs.existsSync(routingDoc)) {

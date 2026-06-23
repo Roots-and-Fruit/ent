@@ -35,4 +35,8 @@ content_models:
 rest:
   notes:
     - Prefer X-WP-Total from ent wp get or site-profile post_type totals for published counts.
-    - Use filters above for live vs upcoming; REST totals alone do not split aired vs upcoming.
+    - Use filters above for derived states; REST totals alone may not split published into business subsets.
+  alternate_paths:
+    - label: Example legacy plugin route
+      path: /example/v1/items
+      note: Prefer the canonical rest_path above for inventory when both exist.

@@ -120,6 +120,32 @@ export async function probePostTypeInventory(siteRoot, headers, { maxTypes = 16 
   }
 }
 
+export async function fetchSamplePostId(siteRoot, username, password) {
+  const root = siteRoot.replace(/\/$/, "");
+  const headers = authHeaders(username, password);
+
+  for (const restBase of ["posts", "pages"]) {
+    try {
+      const res = await fetch(
+        `${root}/wp-json/wp/v2/${restBase}?per_page=1&status=publish&_fields=id`,
+        { headers }
+      );
+      if (!res.ok) {
+        continue;
+      }
+      const items = await res.json();
+      const id = items?.[0]?.id;
+      if (typeof id === "number" && id > 0) {
+        return id;
+      }
+    } catch {
+      // try next type
+    }
+  }
+
+  return null;
+}
+
 export async function probeRestInventory({ siteRoot, username, password }) {
   const root = siteRoot.replace(/\/$/, "");
   const headers = authHeaders(username, password);

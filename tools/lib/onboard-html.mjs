@@ -20,6 +20,7 @@ import {
 } from "./onboard-ui.mjs";
 import { readSiteProfile } from "./site-profile.mjs";
 import { fetchWpMcpAbilities } from "./wp-smoke.mjs";
+import { isAbilitySmokeBlocked } from "./ability-smoke.mjs";
 
 const FOOTER_LINK_FALLBACK =
   '<span class="ent-footer__credit">A <a href="https://rootsandfruit.com" rel="noopener">Roots &amp; Fruit</a> project</span>';
@@ -115,8 +116,9 @@ function sectionHeadFromMeta(sectionId, title, customLede = null) {
 
 function heroSection(siteTitle, ready, abilities) {
   const discovered = abilities.length;
-  const locked = abilities.filter((a) => a.executable === false).length;
-  const unlockCount = locked > 0 ? locked : abilities.filter((a) => a.executable !== true).length;
+  const locked = abilities.filter((a) => isAbilitySmokeBlocked(a)).length;
+  const unlockCount =
+    locked > 0 ? locked : abilities.filter((a) => a.executable !== true && !isAbilitySmokeBlocked(a)).length;
 
   const eyebrow = ready ? "Welcome aboard" : "Getting started";
   const headline = ready ? "Let's plant some roots." : "Almost there.";
@@ -199,11 +201,15 @@ function renderAbilitiesList(abilities) {
   }
 
   const usable = abilities.filter((a) => a.executable === true);
-  const blocked = abilities.filter((a) => a.executable === false);
-  const unknown = abilities.filter((a) => a.executable == null);
+  const needsInput = abilities.filter((a) => a.executable == null && a.error_code === "needs_input");
+  const blocked = abilities.filter((a) => isAbilitySmokeBlocked(a));
+  const unknown = abilities.filter(
+    (a) => a.executable == null && a.error_code !== "needs_input"
+  );
 
   return [
     entAbilityGroup("Ready to use", usable, "ready", "Ready"),
+    entAbilityGroup("Needs parameters", needsInput, "locked", "Parametric"),
     entAbilityGroup("Waiting to be unlocked", blocked, "locked", "Locked"),
     entAbilityGroup("Status unknown", unknown, "locked", "Unknown"),
   ]

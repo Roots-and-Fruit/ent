@@ -127,6 +127,7 @@ function normalizeAbilities(raw) {
       name: item.name ?? item.id ?? item.ability_name ?? "",
       label: item.label ?? item.title ?? item.name ?? "",
       description: item.description ?? item.summary ?? "",
+      input_schema: item.input_schema ?? item.inputSchema ?? item.schema?.input ?? null,
     }))
     .filter((item) => item.name);
 }

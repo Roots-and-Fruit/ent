@@ -72,8 +72,9 @@ Do not claim MCP tools are ready until the user has reloaded and enabled the ser
 After a clean audit, Ent writes `.ent/site-profile.json` with site identity, REST inventory, and abilities with **executable** status.
 
 - `wp.site_identity` fail → fix `WP_MCP_URL` in `.env`.
-- `wp.abilities_usable` fail → some abilities are discovered but blocked — fix WordPress permissions.
-- Optional `content/extensions.yaml` for site-local capability labels.
+- `wp.abilities_usable` fail → some abilities are blocked — fix WordPress permissions or install companion engine.
+- `wp.companion_engine` skip → optional; pass when a `*/ping` ability is executable (abilities engine on site).
+- Optional `content/site-specifications.yaml` for content model semantics; `content/extensions.yaml` for plugin ability hints.
 
 Policy: `ent/agent-adapters/shared/site-routing.md`
 

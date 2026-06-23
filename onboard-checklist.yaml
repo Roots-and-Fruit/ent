@@ -10,6 +10,11 @@ sections:
     source:
       type: site_profile_abilities
 
+  - id: content_models
+    title: Content models
+    source:
+      type: site_specifications
+
   - id: extensions
     title: Extensions
     source:

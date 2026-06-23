@@ -11,7 +11,7 @@ const ENT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 export function runOnboardHtmlTest() {
   const checklist = loadOnboardChecklist();
   assert.ok(checklist.sections.some((s) => s.id === "mcp_support"));
-  assert.ok(checklist.sections.some((s) => s.id === "registered_abilities"));
+  assert.ok(checklist.sections.some((s) => s.id === "content_models"));
 
   const baseReport = {
     ent_version: "test",

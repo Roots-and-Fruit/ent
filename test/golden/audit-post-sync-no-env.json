@@ -13,6 +13,7 @@
     { "id": "wp.rest_auth", "profile": "wordpress_mcp", "status": "fail" },
     { "id": "wp.mcp_transport", "profile": "wordpress_mcp", "status": "fail" },
     { "id": "wp.site_identity", "profile": "wordpress_mcp", "status": "fail" },
-    { "id": "wp.abilities_usable", "profile": "wordpress_mcp", "status": "fail" }
+    { "id": "wp.abilities_usable", "profile": "wordpress_mcp", "status": "fail" },
+    { "id": "wp.companion_engine", "profile": "wordpress_mcp", "status": "fail" }
   ]
 }

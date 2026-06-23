@@ -12,7 +12,8 @@ mcps:
       wp.rest_auth: REST API authentication works
       wp.mcp_transport: MCP transport connected to your site
       wp.site_identity: MCP URL matches your WordPress site
-      wp.abilities_usable: Discovered MCP abilities executable for service account
+      wp.abilities_usable: MCP abilities executable or parametric (not blocked)
+      wp.companion_engine: Abilities engine ping (*/ping) executable when present
 
   - id: blocks
     label: Blocks MCP (Gravity Kit)

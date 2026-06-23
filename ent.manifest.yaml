@@ -33,6 +33,8 @@ profiles:
         description: WP_MCP_URL host matches the WordPress site from /wp-json
       - id: wp.abilities_usable
         description: Discovered MCP abilities are executable for the service account (smoke execute-ability)
+      - id: wp.companion_engine
+        description: Abilities engine health ping (*/ping) is executable when discovered
 
 workspace_scaffold:
   - path: content/

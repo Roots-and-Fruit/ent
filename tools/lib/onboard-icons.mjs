@@ -20,10 +20,15 @@ export const SECTION_META = {
     icon: "wrench",
     lede: "The things Ent can already do — and the ones waiting to be unlocked as you explore.",
   },
+  content_models: {
+    eyebrow: "Semantics",
+    icon: "compass",
+    lede: "Content models from content/site-specifications.yaml, cross-checked with REST totals from audit.",
+  },
   extensions: {
     eyebrow: "Optional",
     icon: "puzzle",
-    lede: "Site-specific capability labels and agent hints from content/extensions.yaml.",
+    lede: "Plugin and extension hints from content/extensions.yaml (ability patterns and agent notes).",
   },
   security: {
     eyebrow: "Coming soon",

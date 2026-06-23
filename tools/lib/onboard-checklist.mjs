@@ -3,6 +3,7 @@ import path from "node:path";
 import YAML from "yaml";
 import { getEntRoot } from "./manifest.mjs";
 import { loadExtensions } from "./extensions.mjs";
+import { loadSiteSpecifications } from "./site-specifications.mjs";
 import { resolveMcpSupportSection } from "./mcp-support.mjs";
 
 export function loadOnboardChecklist(entRoot = getEntRoot()) {
@@ -109,6 +110,53 @@ export function resolveSiteProfileAbilitiesSection(section, abilities) {
   }));
 }
 
+export function resolveContentModelsSection(workspaceRoot, siteProfile) {
+  const spec = loadSiteSpecifications(workspaceRoot);
+  const models = spec.doc?.content_models ?? {};
+  const modelIds = Object.keys(models);
+  const postTypes = siteProfile?.rest?.post_types ?? [];
+
+  if (modelIds.length === 0) {
+    return [
+      {
+        id: "site_spec_missing",
+        label: "Add content/site-specifications.yaml for content model semantics",
+        checked: false,
+        hint: "Copy ent/content/site-specifications.yaml.example and define your content models, REST paths, and business definitions.",
+        hintLink: null,
+        upcoming: false,
+      },
+    ];
+  }
+
+  return modelIds.map((id) => {
+    const model = models[id];
+    const match = model.post_type
+      ? postTypes.find((type) => type.slug === model.post_type)
+      : null;
+    const total =
+      match?.published_total != null ? `published ${match.published_total}` : null;
+    const parts = [
+      model.post_type ? `post_type: ${model.post_type}` : null,
+      model.rest_path ?? null,
+      total,
+    ].filter(Boolean);
+    const label = model.label ?? id;
+
+    return {
+      id,
+      label: parts.length ? `${label} (${parts.join(" · ")})` : label,
+      checked: Boolean(!model.post_type || match),
+      hint:
+        model.post_type && siteProfile && !match
+          ? `REST profile has no totals for post type "${model.post_type}" — re-run audit`
+          : "",
+      hintLink: null,
+      upcoming: false,
+    };
+  });
+}
+
 export function resolveExtensionsSection(section, abilities, workspaceRoot) {
   const { extensions } = loadExtensions(workspaceRoot);
   if (extensions.length === 0) {
@@ -193,6 +241,13 @@ export function resolveChecklistSections(checklist, report, abilities, workspace
           id: section.id,
           title: section.title,
           items: resolveSiteProfileAbilitiesSection(section, abilities),
+        };
+      }
+      if (section.source?.type === "site_specifications") {
+        return {
+          id: section.id,
+          title: section.title,
+          items: resolveContentModelsSection(workspaceRoot, siteProfile),
         };
       }
       if (section.source?.type === "extensions_file") {

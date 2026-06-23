@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { parseEnvFile } from "./env.mjs";
-import { enrichAbilitiesWithSmoke, countAbilitySummary } from "./ability-smoke.mjs";
-import { probeRestInventory } from "./wp-rest-probe.mjs";
+import { enrichAbilitiesWithSmoke, countAbilitySummary, isAbilitySmokeBlocked } from "./ability-smoke.mjs";
+import { probeRestInventory, fetchSamplePostId } from "./wp-rest-probe.mjs";
 import { fetchWpMcpAbilities } from "./wp-smoke.mjs";
 
 export const SITE_PROFILE_FILE = "site-profile.json";
@@ -79,7 +79,15 @@ async function buildSiteProfileFromSmoke(workspaceRoot, options) {
   };
 
   if (!url) {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
+    profile.rest = {
+      post_meta_keys_sample: [],
+      meta_prefixes: [],
+      namespaces: [],
+      namespace_probes: [],
+      post_types: [],
+      sample_post_id: null,
+      sample_post_id: null,
+    };
     profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }
@@ -122,21 +130,41 @@ async function buildSiteProfileFromSmoke(workspaceRoot, options) {
 
 async function finalizeSiteProfile(profile, { siteRoot, username, password, url, smokeOk }) {
   if (!url || !username || !password) {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
+    profile.rest = {
+      post_meta_keys_sample: [],
+      meta_prefixes: [],
+      namespaces: [],
+      namespace_probes: [],
+      post_types: [],
+      sample_post_id: null,
+      sample_post_id: null,
+    };
     profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }
 
   if (profile.checks.rest_ok) {
     profile.rest = await probeRestInventory({ siteRoot, username, password });
+    profile.rest.sample_post_id = await fetchSamplePostId(siteRoot, username, password);
   } else {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
+    profile.rest = {
+      post_meta_keys_sample: [],
+      meta_prefixes: [],
+      namespaces: [],
+      namespace_probes: [],
+      post_types: [],
+      sample_post_id: null,
+      sample_post_id: null,
+    };
   }
 
   if (smokeOk && profile.abilities.length > 0) {
+    const probeContext = { samplePostId: profile.rest?.sample_post_id ?? null };
     profile.abilities = await enrichAbilitiesWithSmoke(
       { url, username, password },
-      profile.abilities
+      profile.abilities,
+      null,
+      probeContext
     );
   } else if (profile.abilities.length > 0) {
     profile.abilities = profile.abilities.map((ability) => ({
@@ -151,7 +179,7 @@ async function finalizeSiteProfile(profile, { siteRoot, username, password, url,
   profile.abilities_summary = countAbilitySummary(profile.abilities);
   profile.checks.abilities_usable =
     profile.abilities.length === 0 ||
-    profile.abilities.every((ability) => ability.executable !== false);
+    profile.abilities.every((ability) => !isAbilitySmokeBlocked(ability));
 
   return profile;
 }
@@ -187,7 +215,15 @@ export async function probeSiteProfile(workspaceRoot, options = {}) {
   };
 
   if (!url || !username || !password) {
-    profile.rest = { post_meta_keys_sample: [], meta_prefixes: [], namespaces: [], namespace_probes: [], post_types: [] };
+    profile.rest = {
+      post_meta_keys_sample: [],
+      meta_prefixes: [],
+      namespaces: [],
+      namespace_probes: [],
+      post_types: [],
+      sample_post_id: null,
+      sample_post_id: null,
+    };
     profile.abilities_summary = countAbilitySummary(profile.abilities);
     return profile;
   }

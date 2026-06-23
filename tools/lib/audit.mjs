@@ -11,6 +11,7 @@ import { portableWorkspaceRoot, relToWorkspace } from "./paths.mjs";
 import { runWpMcpSmoke } from "./wp-smoke.mjs";
 import { writeOnboardHtml } from "./onboard-html.mjs";
 import { buildSiteProfile, writeSiteProfile } from "./site-profile.mjs";
+import { evaluateCompanionEngineCheck, isAbilitySmokeBlocked } from "./ability-smoke.mjs";
 
 export { writeOnboardHtml };
 
@@ -231,7 +232,7 @@ export async function runAudit(workspaceRoot, options = {}) {
       )
     );
 
-    const blocked = (siteProfile.abilities ?? []).filter((a) => a.executable === false);
+    const blocked = (siteProfile.abilities ?? []).filter((a) => isAbilitySmokeBlocked(a));
     const abilitiesUsable = siteProfile.checks.abilities_usable !== false;
     checks.push(
       check(
@@ -240,10 +241,21 @@ export async function runAudit(workspaceRoot, options = {}) {
         abilitiesUsable ? "pass" : "fail",
         abilitiesUsable
           ? siteProfile.abilities_summary?.discovered
-            ? `All ${siteProfile.abilities_summary.discovered} discovered abilities executable (${siteProfile.abilities_summary.executable} ok)`
+            ? `${siteProfile.abilities_summary.executable} executable, ${siteProfile.abilities_summary.needs_input ?? 0} need input, ${siteProfile.abilities_summary.blocked} blocked`
             : "No public abilities registered"
-          : `${blocked.length} ability(ies) discovered but not executable for MCP user`,
+          : `${blocked.length} ability(ies) blocked for MCP user`,
         blocked.map((a) => a.name).join(", ")
+      )
+    );
+
+    const companion = evaluateCompanionEngineCheck(siteProfile.abilities ?? []);
+    checks.push(
+      check(
+        "wp.companion_engine",
+        "wordpress_mcp",
+        companion.status,
+        companion.message,
+        companion.detail
       )
     );
   } else if (url && user && pass) {
@@ -251,14 +263,16 @@ export async function runAudit(workspaceRoot, options = {}) {
       check("wp.rest_auth", "wordpress_mcp", "skip", "Live REST check deferred", "live_gate_deferred"),
       check("wp.mcp_transport", "wordpress_mcp", "skip", "Live MCP transport deferred", "live_gate_deferred"),
       check("wp.site_identity", "wordpress_mcp", "skip", "Live site identity check deferred", "live_gate_deferred"),
-      check("wp.abilities_usable", "wordpress_mcp", "skip", "Live ability execute check deferred", "live_gate_deferred")
+      check("wp.abilities_usable", "wordpress_mcp", "skip", "Live ability execute check deferred", "live_gate_deferred"),
+      check("wp.companion_engine", "wordpress_mcp", "skip", "Live companion engine check deferred", "live_gate_deferred")
     );
   } else {
     checks.push(
       check("wp.rest_auth", "wordpress_mcp", "fail", "Complete .env before live REST check"),
       check("wp.mcp_transport", "wordpress_mcp", "fail", "Complete .env before live MCP check"),
       check("wp.site_identity", "wordpress_mcp", "fail", "Complete .env before site identity check"),
-      check("wp.abilities_usable", "wordpress_mcp", "fail", "Complete .env before ability execute check")
+      check("wp.abilities_usable", "wordpress_mcp", "fail", "Complete .env before ability execute check"),
+      check("wp.companion_engine", "wordpress_mcp", "fail", "Complete .env before companion engine check")
     );
   }
 

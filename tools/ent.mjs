@@ -15,6 +15,7 @@ import { runOnboardRefreshTest } from "./lib/test-onboard-refresh.mjs";
 import { runOffboardTest } from "./lib/test-offboard.mjs";
 import { runSiteProfileTest } from "./lib/test-site-profile.mjs";
 import { runWpCommandTest } from "./lib/test-wp-command.mjs";
+import { runAbilitySmokeTest } from "./lib/test-ability-smoke.mjs";
 import { runWpRestProbeTest } from "./lib/test-wp-rest-probe.mjs";
 import { runOnboard, ONBOARD_SUCCESS_MESSAGE } from "./lib/onboard.mjs";
 import { runOffboard } from "./lib/offboard.mjs";
@@ -41,7 +42,7 @@ Usage:
   node tools/ent.mjs wp ability --workspace-root <path> --name <ability-name> [--input '{}']
   node tools/ent.mjs test <suite> --workspace-root <path>
 
-Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, onboard-refresh, offboard, site-profile, wp-command, wp-rest-probe, sync, negative-audit, scaffold
+Suites: branding-boundary, kit-runtime-boundary, mcp-config, onboard, onboard-html, onboard-refresh, offboard, site-profile, ability-smoke, wp-command, wp-rest-probe, sync, negative-audit, scaffold
 `);
 }
 
@@ -395,6 +396,12 @@ async function cmdTestWpCommand() {
   process.exit(0);
 }
 
+async function cmdTestAbilitySmoke() {
+  runAbilitySmokeTest();
+  console.log("OK  test ability-smoke");
+  process.exit(0);
+}
+
 async function cmdTestWpRestProbe() {
   runWpRestProbeTest();
   console.log("OK  test wp-rest-probe");
@@ -460,6 +467,9 @@ async function cmdTest(args) {
       break;
     case "wp-command":
       await cmdTestWpCommand();
+      break;
+    case "ability-smoke":
+      await cmdTestAbilitySmoke();
       break;
     case "wp-rest-probe":
       await cmdTestWpRestProbe();

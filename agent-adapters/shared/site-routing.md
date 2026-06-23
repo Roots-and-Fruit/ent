@@ -16,6 +16,15 @@ Use this with `.ent/site-profile.json` on every session. Humans configure the si
 | **MCP abilities** (`execute-ability`) | Only abilities with `executable: true` in site profile. Requires `checks.mcp_ok`. |
 | **Neither** | Extension/plugin tasks when no matching **executable** ability exists. Report the gap; do not guess or brute-force plugin REST namespaces. |
 
+## Inventory and counts
+
+For **count, list, or inventory** questions (totals, published items, post-type catalogs):
+
+1. Read `content/site-specifications.yaml` and `.ent/site-profile.json` (`rest.post_types`, `headers.total` via `ent wp get`).
+2. Use **REST** directly — do **not** call live `discover-abilities` for these questions.
+3. Use **MCP execute-ability** only when a matching ability is `executable: true` in the site profile (for example a site-defined stats ability).
+4. Abilities marked `needs_input` in the profile are parametric — they are not failures; do not treat them as permission blocks.
+
 ## Probe budget (extension tasks)
 
 1. Read site profile abilities and `content/extensions.yaml` hints if present.

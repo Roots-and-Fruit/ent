@@ -82,8 +82,10 @@ export function formatRoutingSummary() {
     "## Agent routing (Ent)",
     "",
     "- **REST** for core WordPress when no executable MCP ability applies (`checks.rest_ok` required).",
+    "- **Inventory/count/list** — read site profile + site-specifications first; use REST or `ent wp get` headers; do not call `discover-abilities`.",
     "- **MCP execute-ability** only for abilities with `executable: true` in site profile.",
     "- **Extension tasks** require a matching executable ability — do not brute-force plugin APIs.",
+    "- Profile `needs_input` abilities are parametric — not permission failures.",
     "- Full policy: `ent/agent-adapters/shared/site-routing.md`",
   ].join("\n");
 }
